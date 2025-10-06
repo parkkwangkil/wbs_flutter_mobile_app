@@ -1,6 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/language_provider.dart';
+import '../providers/notification_provider.dart';
 import '../services/notification_settings.dart';
-import '../l10n/app_localizations.dart';
 
 class NotificationSettingsPage extends StatefulWidget {
   const NotificationSettingsPage({super.key});
@@ -18,38 +21,32 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final lang = Provider.of<LanguageProvider>(context);
     
     return Scaffold(
       appBar: AppBar(
-        title: const Text('알림 설정'),
+        title: Text(lang.getText('알림 설정', 'Notification Settings')),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: StreamBuilder<Map<String, bool>>(
         stream: NotificationSettings.settingsStream,
+        initialData: NotificationSettings.settings,
         builder: (context, snapshot) {
-          if (!snapshot.hasData) {
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return const Center(child: CircularProgressIndicator());
           }
-
           final settings = snapshot.data!;
-          
+
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              // 알림 통계
-              _buildNotificationStats(settings),
+              _buildNotificationStats(lang),
               const SizedBox(height: 24),
-              
-              // 알림 유형별 설정
               ...NotificationSettings.settingGroups.entries.map((entry) {
-                return _buildSettingsGroup(entry.key, entry.value, settings);
+                return _buildSettingsGroup(entry.key, entry.value, settings, lang);
               }).toList(),
-              
               const SizedBox(height: 24),
-              
-              // 액션 버튼들
-              _buildActionButtons(),
+              _buildActionButtons(lang),
             ],
           );
         },
@@ -57,57 +54,27 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     );
   }
 
-  Widget _buildNotificationStats(Map<String, bool> settings) {
-    final activeCount = NotificationSettings.activeNotificationCount;
-    final totalCount = NotificationSettings.totalNotificationCount;
-    final ratio = NotificationSettings.notificationRatio;
-    
+  Widget _buildNotificationStats(LanguageProvider lang) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              '알림 통계',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            Text(lang.getText('알림 통계', 'Notification Stats'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(
-                  child: _buildStatItem(
-                    '활성화된 알림',
-                    '$activeCount',
-                    Colors.green,
-                  ),
-                ),
-                Expanded(
-                  child: _buildStatItem(
-                    '전체 알림',
-                    '$totalCount',
-                    Colors.blue,
-                  ),
-                ),
-                Expanded(
-                  child: _buildStatItem(
-                    '활성화 비율',
-                    '${(ratio * 100).toInt()}%',
-                    Colors.orange,
-                  ),
-                ),
+                Expanded(child: _buildStatItem(lang.getText('활성화', 'Active'), '${NotificationSettings.activeNotificationCount}', Colors.green)),
+                Expanded(child: _buildStatItem(lang.getText('전체', 'Total'), '${NotificationSettings.totalNotificationCount}', Colors.blue)),
+                Expanded(child: _buildStatItem(lang.getText('비율', 'Ratio'), '${(NotificationSettings.notificationRatio * 100).toInt()}%', Colors.orange)),
               ],
             ),
             const SizedBox(height: 16),
             LinearProgressIndicator(
-              value: ratio,
+              value: NotificationSettings.notificationRatio,
               backgroundColor: Colors.grey[300],
-              valueColor: AlwaysStoppedAnimation<Color>(
-                ratio > 0.5 ? Colors.green : Colors.orange,
-              ),
+              valueColor: AlwaysStoppedAnimation<Color>(NotificationSettings.notificationRatio > 0.5 ? Colors.green : Colors.orange),
             ),
           ],
         ),
@@ -118,263 +85,123 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
   Widget _buildStatItem(String label, String value, Color color) {
     return Column(
       children: [
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
-        ),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Colors.grey,
-          ),
-        ),
+        Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color)),
+        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
       ],
     );
   }
 
-  Widget _buildSettingsGroup(String groupName, List<String> settingKeys, Map<String, bool> settings) {
+  Widget _buildSettingsGroup(String groupName, List<String> settingKeys, Map<String, bool> settings, LanguageProvider lang) {
     return Card(
+      margin: const EdgeInsets.only(bottom: 16),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(vertical: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              groupName,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Text(lang.getText(groupName, groupName), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             ),
-            const SizedBox(height: 16),
-            ...settingKeys.map((key) {
-              return _buildSettingItem(key, settings[key] ?? false);
-            }).toList(),
+            const SizedBox(height: 8),
+            ...settingKeys.map((key) => _buildSettingItem(key, settings[key] ?? false, lang)).toList(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSettingItem(String key, bool value) {
-    final description = NotificationSettings.settingDescriptions[key] ?? key;
+  Widget _buildSettingItem(String key, bool value, LanguageProvider lang) {
+    final title = NotificationSettings.settingDescriptions[key] ?? key;
     
-    return ListTile(
-      title: Text(description),
-      subtitle: Text(_getSettingSubtitle(key)),
-      trailing: Switch(
-        value: value,
-        onChanged: (newValue) {
-          NotificationSettings.setSetting(key, newValue);
-        },
-      ),
-      onTap: () {
-        NotificationSettings.setSetting(key, !value);
+    return SwitchListTile(
+      title: Text(lang.getText(title, title)),
+      value: value,
+      onChanged: (newValue) {
+        NotificationSettings.setSetting(key, newValue);
       },
     );
   }
 
-  String _getSettingSubtitle(String key) {
-    switch (key) {
-      case 'push_notifications':
-        return '앱 내 푸시 알림을 받습니다';
-      case 'email_notifications':
-        return '이메일로 알림을 받습니다';
-      case 'project_updates':
-        return '프로젝트 업데이트 시 알림';
-      case 'event_reminders':
-        return '이벤트 시작 전 알림';
-      case 'team_notifications':
-        return '팀 관련 알림';
-      case 'system_alerts':
-        return '시스템 중요 알림';
-      case 'daily_summary':
-        return '매일 요약 이메일';
-      case 'weekly_summary':
-        return '매주 요약 이메일';
-      case 'milestone_alerts':
-        return '마일스톤 완료 알림';
-      case 'deadline_warnings':
-        return '마감일 경고 알림';
-      default:
-        return '알림 설정';
-    }
-  }
-
-  Widget _buildActionButtons() {
+  Widget _buildActionButtons(LanguageProvider lang) {
     return Column(
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  _showResetDialog();
-                },
-                icon: const Icon(Icons.refresh),
-                label: const Text('설정 초기화'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
-                  foregroundColor: Colors.white,
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  _showExportDialog();
-                },
-                icon: const Icon(Icons.download),
-                label: const Text('설정 내보내기'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
-                ),
-              ),
-            ),
-          ],
-        ),
+        Row(children: [
+          Expanded(child: ElevatedButton.icon(onPressed: () => _showResetDialog(lang), icon: const Icon(Icons.refresh), label: Text(lang.getText('설정 초기화', 'Reset')), style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white))),
+          const SizedBox(width: 16),
+          Expanded(child: ElevatedButton.icon(onPressed: () => _showExportDialog(lang), icon: const Icon(Icons.download), label: Text(lang.getText('내보내기', 'Export')), style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white))),
+        ]),
         const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  _showImportDialog();
-                },
-                icon: const Icon(Icons.upload),
-                label: const Text('설정 가져오기'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  _showTestDialog();
-                },
-                icon: const Icon(Icons.notifications),
-                label: const Text('테스트 알림'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.purple,
-                  foregroundColor: Colors.white,
-                ),
-              ),
-            ),
-          ],
-        ),
+        Row(children: [
+          Expanded(child: ElevatedButton.icon(onPressed: () => _showImportDialog(lang), icon: const Icon(Icons.upload), label: Text(lang.getText('가져오기', 'Import')), style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white))),
+          const SizedBox(width: 16),
+          Expanded(child: ElevatedButton.icon(onPressed: () => _showTestDialog(lang), icon: const Icon(Icons.notifications), label: Text(lang.getText('테스트', 'Test')), style: ElevatedButton.styleFrom(backgroundColor: Colors.purple, foregroundColor: Colors.white))),
+        ]),
       ],
     );
   }
 
-  void _showResetDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('설정 초기화'),
-        content: const Text('모든 알림 설정을 기본값으로 초기화하시겠습니까?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              NotificationSettings.resetSettings();
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('설정이 초기화되었습니다')),
-              );
-            },
-            child: const Text('초기화'),
-          ),
-        ],
-      ),
-    );
+  void _showResetDialog(LanguageProvider lang) {
+    showDialog(context: context, builder: (context) => AlertDialog(
+      title: Text(lang.getText('설정 초기화', 'Reset Settings')),
+      content: Text(lang.getText('모든 알림 설정을 기본값으로 초기화하시겠습니까?', 'Reset all notification settings to default?')),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(lang.getText('취소', 'Cancel'))),
+        ElevatedButton(onPressed: () {
+          NotificationSettings.resetSettings();
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(lang.getText('설정이 초기화되었습니다', 'Settings have been reset'))));
+        }, child: Text(lang.getText('초기화', 'Reset'))),
+      ],
+    ));
+  }
+  
+  void _showTestDialog(LanguageProvider lang) {
+    showDialog(context: context, builder: (context) => AlertDialog(
+      title: Text(lang.getText('테스트 알림', 'Test Notification')),
+      content: Text(lang.getText('테스트 알림을 전송하시겠습니까?', 'Send a test notification?')),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(lang.getText('취소', 'Cancel'))),
+        ElevatedButton(onPressed: () {
+          Provider.of<NotificationProvider>(context, listen: false).addNotification(
+            title: lang.getText('테스트 알림', 'Test Notification'),
+            body: lang.getText('이 알림은 WBS 앱에서 보낸 테스트 메시지입니다.', 'This is a test message from the WBS App.'),
+            type: 'system_alerts',
+          );
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(lang.getText('테스트 알림이 전송되었습니다', 'Test notification sent'))));
+        }, child: Text(lang.getText('전송', 'Send'))),
+      ],
+    ));
+  }
+  
+  void _showExportDialog(LanguageProvider lang) {
+    final settingsJson = jsonEncode(NotificationSettings.exportSettings());
+    showDialog(context: context, builder: (context) => AlertDialog(
+      title: Text(lang.getText('설정 내보내기', 'Export Settings')),
+      content: SelectableText(settingsJson),
+      actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(lang.getText('닫기', 'Close')))],
+    ));
   }
 
-  void _showExportDialog() {
-    final settings = NotificationSettings.exportSettings();
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('설정 내보내기'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('현재 알림 설정을 JSON 형태로 내보냅니다.'),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                settings.toString(),
-                style: const TextStyle(fontFamily: 'monospace'),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('닫기'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showImportDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('설정 가져오기'),
-        content: const Text('JSON 형태의 설정을 가져옵니다.\n\n이 기능은 준비 중입니다.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('닫기'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showTestDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('테스트 알림'),
-        content: const Text('테스트 알림을 전송하시겠습니까?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              // 테스트 알림 전송 로직
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('테스트 알림이 전송되었습니다')),
-              );
-            },
-            child: const Text('전송'),
-          ),
-        ],
-      ),
-    );
+  void _showImportDialog(LanguageProvider lang) {
+    final controller = TextEditingController();
+    showDialog(context: context, builder: (context) => AlertDialog(
+      title: Text(lang.getText('설정 가져오기', 'Import Settings')),
+      content: TextField(controller: controller, decoration: InputDecoration(hintText: lang.getText('JSON 데이터를 여기에 붙여넣으세요', 'Paste JSON data here'))),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(lang.getText('취소', 'Cancel'))),
+        ElevatedButton(onPressed: () {
+          try {
+            final importedSettings = jsonDecode(controller.text);
+            NotificationSettings.importSettings(importedSettings as Map<String, dynamic>);
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(lang.getText('설정을 가져왔습니다', 'Settings imported successfully'))));
+          } catch (e) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(lang.getText('잘못된 형식입니다', 'Invalid format'))));
+          }
+        }, child: Text(lang.getText('가져오기', 'Import'))),
+      ],
+    ));
   }
 }

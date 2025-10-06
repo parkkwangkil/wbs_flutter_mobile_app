@@ -45,7 +45,7 @@ class NotificationManager {
     if (NotificationSettings.pushNotifications) {
       if (scheduledTime != null) {
         await NotificationService.scheduleNotification(
-          id: int.parse(notification['id']),
+          id: int.parse(notification['id'] as String),
           title: title,
           body: body,
           scheduledDate: scheduledTime,
@@ -53,7 +53,7 @@ class NotificationManager {
         );
       } else {
         await NotificationService.showNotification(
-          id: int.parse(notification['id']),
+          id: int.parse(notification['id'] as String),
           title: title,
           body: body,
           payload: payload,

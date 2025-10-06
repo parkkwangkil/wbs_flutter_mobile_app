@@ -60,7 +60,7 @@ class _BottomActionMenuState extends State<BottomActionMenu> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          '${l10n.settings} - ${widget.currentPage}',
+                          '${l10n?.settings ?? '설정'} - ${widget.currentPage}',
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
@@ -85,27 +85,27 @@ class _BottomActionMenuState extends State<BottomActionMenu> {
                         children: [
                           _buildMenuButton(
                             icon: Icons.language,
-                            label: l10n.language,
+                            label: l10n?.language ?? '언어',
                             onTap: _showLanguageSelector,
                           ),
                           _buildMenuButton(
                             icon: Icons.dark_mode,
-                            label: l10n.darkMode,
+                            label: l10n?.darkMode ?? '다크모드',
                             onTap: widget.onThemeChange,
                           ),
                           _buildMenuButton(
                             icon: Icons.notifications,
-                            label: l10n.alarm,
+                            label: l10n?.alarm ?? '알림',
                             onTap: widget.onNotifications,
                           ),
                           _buildMenuButton(
                             icon: Icons.person,
-                            label: l10n.profile,
+                            label: l10n?.profile ?? '프로필',
                             onTap: widget.onProfile,
                           ),
                           _buildMenuButton(
                             icon: Icons.settings,
-                            label: l10n.settings,
+                            label: l10n?.settings ?? '설정',
                             onTap: widget.onSettings,
                           ),
                           _buildMenuButton(

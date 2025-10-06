@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import '../services/payment_service.dart';
+import 'package:provider/provider.dart';
+import '../services/payment_service.dart'; // 이 파일은 services 폴더에 생성해야 합니다.
+import '../providers/language_provider.dart';
 
 class SubscriptionPage extends StatefulWidget {
   const SubscriptionPage({super.key});
@@ -14,9 +16,11 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
 
   @override
   Widget build(BuildContext context) {
+    final lang = Provider.of<LanguageProvider>(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('구독 관리'),
+        title: Text(lang.getText('구독 관리', 'Subscription Management')),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
       ),
@@ -26,31 +30,31 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 현재 구독 상태
-            _buildCurrentSubscription(),
+            _buildCurrentSubscription(lang),
             const SizedBox(height: 24),
-            
+
             // 구독 플랜 선택
-            const Text(
-              '구독 플랜 선택',
-              style: TextStyle(
+            Text(
+              lang.getText('구독 플랜 선택', 'Choose a Subscription Plan'),
+              style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 16),
-            
-            ...PaymentService.subscriptionPlans.map((plan) => 
-              _buildPlanCard(plan)
-            ).toList(),
-            
+
+            ...PaymentService.subscriptionPlans
+                .map((plan) => _buildPlanCard(plan, lang))
+                .toList(),
+
             const SizedBox(height: 24),
-            
+
             // 결제 버튼
             SizedBox(
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
-                onPressed: _isLoading ? null : _processPayment,
+                onPressed: _isLoading ? null : () => _processPayment(lang),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
                   foregroundColor: Colors.white,
@@ -60,65 +64,65 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                 ),
                 child: _isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(
-                        '구독하기',
-                        style: TextStyle(
+                    : Text(
+                        lang.getText('구독하기', 'Subscribe'),
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // 결제 내역
-            _buildPaymentHistory(),
+            _buildPaymentHistory(lang),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildCurrentSubscription() {
+  Widget _buildCurrentSubscription(LanguageProvider lang) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              '현재 구독',
-              style: TextStyle(
+            Text(
+              lang.getText('현재 구독', 'Current Subscription'),
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 12),
-            const ListTile(
-              leading: Icon(Icons.check_circle, color: Colors.green),
-              title: Text('프로 플랜'),
-              subtitle: Text('2024년 2월 15일까지'),
-              trailing: Text('₩19,900/월'),
+            ListTile(
+              leading: const Icon(Icons.check_circle, color: Colors.green),
+              title: Text(lang.getText('프로 플랜', 'Pro Plan')),
+              subtitle: Text(lang.getText('2024년 2월 15일까지', 'Until Feb 15, 2024')),
+              trailing: const Text('₩19,900/월'),
             ),
             const SizedBox(height: 8),
             Row(
               children: [
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () => _showCancelDialog(),
+                    onPressed: () => _showCancelDialog(lang),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
                       foregroundColor: Colors.white,
                     ),
-                    child: const Text('구독 취소'),
+                    child: Text(lang.getText('구독 취소', 'Cancel Subscription')),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () => _showRefundDialog(),
-                    child: const Text('환불 요청'),
+                    onPressed: () => _showRefundDialog(lang),
+                    child: Text(lang.getText('환불 요청', 'Request Refund')),
                   ),
                 ),
               ],
@@ -129,9 +133,9 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
     );
   }
 
-  Widget _buildPlanCard(Map<String, dynamic> plan) {
+  Widget _buildPlanCard(Map<String, dynamic> plan, LanguageProvider lang) {
     final isSelected = _selectedPlan == plan['id'];
-    
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: isSelected ? 4 : 1,
@@ -172,7 +176,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                 '₩${plan['price'].toString().replaceAllMapped(
                   RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
                   (Match m) => '${m[1]},',
-                )}/${plan['period']}',
+                )}/${lang.getText('월', 'mo')}',
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -180,18 +184,18 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                 ),
               ),
               const SizedBox(height: 12),
-              ...(plan['features'] as List<String>).map((feature) => 
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.check, size: 16, color: Colors.green),
-                      const SizedBox(width: 8),
-                      Text(feature),
-                    ],
-                  ),
-                ),
-              ).toList(),
+              ...(plan['features'] as List<String>)
+                  .map((feature) => Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.check, size: 16, color: Colors.green),
+                            const SizedBox(width: 8),
+                            Text(feature),
+                          ],
+                        ),
+                      ))
+                  .toList(),
             ],
           ),
         ),
@@ -199,16 +203,16 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
     );
   }
 
-  Widget _buildPaymentHistory() {
+  Widget _buildPaymentHistory(LanguageProvider lang) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              '결제 내역',
-              style: TextStyle(
+            Text(
+              lang.getText('결제 내역', 'Payment History'),
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
@@ -220,31 +224,31 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
-                
+
                 if (snapshot.hasError || !snapshot.hasData) {
-                  return const Text('결제 내역을 불러올 수 없습니다.');
+                  return Text(lang.getText('결제 내역을 불러올 수 없습니다.', 'Could not load payment history.'));
                 }
-                
+
                 return Column(
-                  children: snapshot.data!.map((payment) => 
-                    ListTile(
-                      leading: const Icon(Icons.receipt),
-                      title: Text(payment['plan']),
-                      subtitle: Text(
-                        '${payment['date'].toString().split(' ')[0]}',
-                      ),
-                      trailing: Text(
-                        '₩${payment['amount'].toString().replaceAllMapped(
-                          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-                          (Match m) => '${m[1]},',
-                        )}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue,
-                        ),
-                      ),
-                    ),
-                  ).toList(),
+                  children: snapshot.data!
+                      .map((payment) => ListTile(
+                            leading: const Icon(Icons.receipt),
+                            title: Text(payment['plan']),
+                            subtitle: Text(
+                              '${payment['date'].toString().split(' ')[0]}',
+                            ),
+                            trailing: Text(
+                              '₩${payment['amount'].toString().replaceAllMapped(
+                                RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                                (Match m) => '${m[1]},',
+                              )}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue,
+                              ),
+                            ),
+                          ))
+                      .toList(),
                 );
               },
             ),
@@ -254,74 +258,78 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
     );
   }
 
-  Future<void> _processPayment() async {
+  Future<void> _processPayment(LanguageProvider lang) async {
     setState(() => _isLoading = true);
-    
+
     try {
       final success = await PaymentService.processPayment(_selectedPlan, 'card');
-      
+
+      if (!mounted) return;
+
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('구독이 완료되었습니다!')),
+          SnackBar(content: Text(lang.getText('구독이 완료되었습니다!', 'Subscription completed!'))),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('결제에 실패했습니다. 다시 시도해주세요.')),
+          SnackBar(content: Text(lang.getText('결제에 실패했습니다. 다시 시도해주세요.', 'Payment failed. Please try again.'))),
         );
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('오류가 발생했습니다: $e')),
+        SnackBar(content: Text('${lang.getText('오류가 발생했습니다', 'An error occurred')}: $e')),
       );
     } finally {
+      if (!mounted) return;
       setState(() => _isLoading = false);
     }
   }
 
-  void _showCancelDialog() {
+  void _showCancelDialog(LanguageProvider lang) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('구독 취소'),
-        content: const Text('정말로 구독을 취소하시겠습니까?'),
+        title: Text(lang.getText('구독 취소', 'Cancel Subscription')),
+        content: Text(lang.getText('정말로 구독을 취소하시겠습니까?', 'Are you sure you want to cancel your subscription?')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('아니오'),
+            child: Text(lang.getText('아니오', 'No')),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('구독이 취소되었습니다.')),
+                SnackBar(content: Text(lang.getText('구독이 취소되었습니다.', 'Subscription has been canceled.'))),
               );
             },
-            child: const Text('예'),
+            child: Text(lang.getText('예', 'Yes')),
           ),
         ],
       ),
     );
   }
 
-  void _showRefundDialog() {
+  void _showRefundDialog(LanguageProvider lang) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('환불 요청'),
-        content: const Text('환불을 요청하시겠습니까?'),
+        title: Text(lang.getText('환불 요청', 'Request Refund')),
+        content: Text(lang.getText('환불을 요청하시겠습니까?', 'Would you like to request a refund?')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
+            child: Text(lang.getText('취소', 'Cancel')),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('환불 요청이 접수되었습니다.')),
+                SnackBar(content: Text(lang.getText('환불 요청이 접수되었습니다.', 'Your refund request has been submitted.'))),
               );
             },
-            child: const Text('요청'),
+            child: Text(lang.getText('요청', 'Request')),
           ),
         ],
       ),

@@ -1,90 +1,96 @@
 import 'package:flutter/material.dart';
-import '../services/social_service.dart';
+import 'package:provider/provider.dart';
+import '../providers/language_provider.dart';
 
 class SocialShareWidget extends StatelessWidget {
-  final Map<String, dynamic> item;
-  final String type; // 'project' or 'event'
+  final String contentToShare;
 
   const SocialShareWidget({
     super.key,
-    required this.item,
-    required this.type,
+    required this.contentToShare,
   });
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
-      icon: const Icon(Icons.share),
-      onSelected: (value) => _handleShare(context, value),
-      itemBuilder: (context) => [
-        const PopupMenuItem(
-          value: 'copy',
-          child: ListTile(
-            leading: Icon(Icons.copy),
-            title: Text('링크 복사'),
-            contentPadding: EdgeInsets.zero,
-          ),
+    final lang = Provider.of<LanguageProvider>(context);
+
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            Text(
+              lang.getText('결과 공유하기', 'Share Results'),
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              contentToShare,
+              style: Theme.of(context).textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildShareButton(
+                  context,
+                  icon: Icons.share, // 실제로는 각 소셜 아이콘 사용
+                  label: 'Facebook',
+                  onTap: () {
+                    // TODO: Facebook 공유 로직 구현
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text('Facebook으로 공유: $contentToShare')));
+                  },
+                ),
+                _buildShareButton(
+                  context,
+                  icon: Icons.chat_bubble,
+                  label: 'Kakao',
+                  onTap: () {
+                    // TODO: Kakao 공유 로직 구현
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text('Kakao로 공유: $contentToShare')));
+                  },
+                ),
+                _buildShareButton(
+                  context,
+                  icon: Icons.link,
+                  label: lang.getText('링크 복사', 'Copy Link'),
+                  onTap: () {
+                    // TODO: 클립보드에 링크 복사 로직 구현
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text(lang.getText(
+                            '링크가 복사되었습니다.', 'Link copied to clipboard.'))));
+                  },
+                ),
+              ],
+            ),
+          ],
         ),
-        const PopupMenuItem(
-          value: 'email',
-          child: ListTile(
-            leading: Icon(Icons.email),
-            title: Text('이메일로 공유'),
-            contentPadding: EdgeInsets.zero,
-          ),
-        ),
-        const PopupMenuItem(
-          value: 'team',
-          child: ListTile(
-            leading: Icon(Icons.group),
-            title: Text('팀원에게 공유'),
-            contentPadding: EdgeInsets.zero,
-          ),
-        ),
-      ],
+      ),
     );
   }
 
-  Future<void> _handleShare(BuildContext context, String action) async {
-    try {
-      bool success = false;
-      
-      switch (action) {
-        case 'copy':
-          // 링크 복사 시뮬레이션
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('링크가 복사되었습니다')),
-          );
-          success = true;
-          break;
-          
-        case 'email':
-          // 이메일 공유 시뮬레이션
-          if (type == 'project') {
-            success = await SocialService.shareProject(item);
-          } else {
-            success = await SocialService.shareEvent(item);
-          }
-          break;
-          
-        case 'team':
-          // 팀원에게 공유 시뮬레이션
-          success = await SocialService.inviteTeamMember(
-            'team@example.com',
-            item['id'] ?? '',
-          );
-          break;
-      }
-
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${type == 'project' ? '프로젝트' : '이벤트'}가 공유되었습니다')),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('공유 실패: $e')),
-      );
-    }
+  Widget _buildShareButton(BuildContext context,
+      {required IconData icon,
+      required String label,
+      required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 32, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(height: 4),
+            Text(label, style: const TextStyle(fontSize: 12)),
+          ],
+        ),
+      ),
+    );
   }
 }

@@ -1,94 +1,37 @@
-import 'package:flutter/material.dart';
-import 'package:google_sign_in/google_sign_in.dart';
+// 실제 구현 시에는 google_sign_in, flutter_naver_login, kakao_flutter_sdk 등// 각 플랫폼에 맞는 라이브러리를 pubspec.yaml에 추가하고 import 해야 합니다.
 
 class SocialService {
-  static final GoogleSignIn _googleSignIn = GoogleSignIn(
-    scopes: ['email', 'profile'],
-    clientId: '실제_Google_Cloud_Console에서_복사한_Client_ID를_여기에_붙여넣으세요', // Google Cloud Console에서 발급받은 Client ID
-  );
-
-  // Google 로그인
-  static Future<Map<String, dynamic>?> loginWithGoogle() async {
-    try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      
-      if (googleUser == null) {
-        throw Exception('사용자가 로그인을 취소했습니다.');
-      }
-
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      
-      return {
-        'id': 'google_${DateTime.now().millisecondsSinceEpoch}',
-        'name': googleUser.displayName ?? 'Google User',
-        'email': googleUser.email,
-        'avatar': googleUser.photoUrl,
-        'provider': 'google',
-        'username': googleUser.email,
-        'firstName': googleUser.displayName?.split(' ').first ?? 'Google',
-        'lastName': googleUser.displayName?.split(' ').skip(1).join(' ') ?? 'User',
-        'department': 'Social',
-        'password': 'google_login',
-      };
-    } catch (e) {
-      throw Exception('Google 로그인 실패: $e');
-    }
-  }
-
-  // Google 로그아웃
-  static Future<void> signOutGoogle() async {
-    await _googleSignIn.signOut();
-  }
-
-  static Future<Map<String, dynamic>?> loginWithNaver() async {
-    // Naver 로그인 시뮬레이션
-    await Future.delayed(const Duration(seconds: 1));
+  // Google로 로그인
+  static Future<Map<String, dynamic>> loginWithGoogle() async {
+    await Future.delayed(const Duration(seconds: 2)); // 가짜 네트워크 딜레이
+    // TODO: 실제 google_sign_in 라이브러리 연동 코드 구현
+    print('Google 로그인 시도...');
     return {
-      'id': 'naver_${DateTime.now().millisecondsSinceEpoch}',
-      'name': 'Naver User',
-      'email': 'user@naver.com',
-      'avatar': 'https://via.placeholder.com/100',
-      'provider': 'naver',
+      'success': true,
+      'user': {'name': 'Google User', 'email': 'google.user@gmail.com'}
     };
   }
 
-  static Future<Map<String, dynamic>?> loginWithKakao() async {
-    // Kakao 로그인 시뮬레이션
-    await Future.delayed(const Duration(seconds: 1));
+  // Naver로 로그인
+  static Future<Map<String, dynamic>> loginWithNaver() async {
+    await Future.delayed(const Duration(seconds: 2));
+    // TODO: 실제 flutter_naver_login 라이브러리 연동 코드 구현
+    print('Naver 로그인 시도...');
     return {
-      'id': 'kakao_${DateTime.now().millisecondsSinceEpoch}',
-      'name': 'Kakao User',
-      'email': 'user@kakao.com',
-      'avatar': 'https://via.placeholder.com/100',
-      'provider': 'kakao',
+      'success': true,
+      'user': {'name': '네이버 유저', 'email': 'naver.user@naver.com'}
     };
   }
 
-  // 프로젝트 공유 기능
-  static Future<bool> shareProject(Map<String, dynamic> project) async {
-    // 프로젝트 공유 시뮬레이션
-    await Future.delayed(const Duration(seconds: 1));
-    return true;
-  }
-
-  // 이벤트 공유 기능
-  static Future<bool> shareEvent(Map<String, dynamic> event) async {
-    // 이벤트 공유 시뮬레이션
-    await Future.delayed(const Duration(seconds: 1));
-    return true;
-  }
-
-  // 팀 초대 기능
-  static Future<bool> inviteTeamMember(String email, String projectId) async {
-    // 팀원 초대 시뮬레이션
-    await Future.delayed(const Duration(seconds: 1));
-    return true;
-  }
-
-  // 협업 기능
-  static Future<bool> collaborateOnProject(String projectId, String userId) async {
-    // 프로젝트 협업 시뮬레이션
-    await Future.delayed(const Duration(seconds: 1));
-    return true;
+  // Kakao로 로그인
+  static Future<Map<String, dynamic>> loginWithKakao() async {
+    await Future.delayed(const Duration(seconds: 2));
+    // TODO: 실제 kakao_flutter_sdk 라이브러리 연동 코드 구현
+    print('Kakao 로그인 시도...');
+    // 실패 케이스 테스트
+    return {
+      'success': false,
+      'message': 'Kakao API 연동 중 오류가 발생했습니다.'
+    };
   }
 }
