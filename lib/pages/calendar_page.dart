@@ -4,6 +4,7 @@ import 'package:table_calendar/table_calendar.dart';
 import '../providers/language_provider.dart';
 import '../services/event_service.dart';
 import '../services/local_database.dart';
+import '../services/app_state_service.dart';
 
 class CalendarPage extends StatefulWidget {
   const CalendarPage({super.key});
@@ -25,7 +26,25 @@ class _CalendarPageState extends State<CalendarPage> {
     _loadEvents();
   }
 
-  // AppStateService 구독 제거 - 무한루프 방지
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // AppStateService 변경사항 감지하여 자동 새로고침
+    final appState = Provider.of<AppStateService>(context, listen: false);
+    appState.addListener(_onAppStateChanged);
+  }
+
+  @override
+  void dispose() {
+    final appState = Provider.of<AppStateService>(context, listen: false);
+    appState.removeListener(_onAppStateChanged);
+    super.dispose();
+  }
+
+  void _onAppStateChanged() {
+    // 이벤트나 프로젝트가 변경되었을 때 자동 새로고침
+    _loadEvents();
+  }
   
   Future<void> _loadEvents() async {
     setState(() {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/language_provider.dart';
 import '../services/local_database.dart';
+import '../services/app_state_service.dart';
 
 class CreateProjectPage extends StatefulWidget {
   const CreateProjectPage({super.key});
@@ -60,6 +61,10 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
       try {
         // LocalDatabase에 프로젝트 저장
         await LocalDatabase.addProject(newProject);
+        
+        // AppStateService에 프로젝트 추가하여 다른 페이지에 실시간 반영
+        final appState = Provider.of<AppStateService>(context, listen: false);
+        appState.addProject(newProject);
         
         // 성공 메시지 표시
         ScaffoldMessenger.of(context).showSnackBar(
