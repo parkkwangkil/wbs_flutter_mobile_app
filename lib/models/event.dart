@@ -11,6 +11,7 @@ class Event {
   final int alarmMinutes;
   final int createdBy;
   final DateTime createdAt;
+  final String projectId; // 프로젝트 ID 추가
 
   const Event({
     required this.id,
@@ -25,6 +26,7 @@ class Event {
     required this.alarmMinutes,
     required this.createdBy,
     required this.createdAt,
+    required this.projectId,
   });
 
   factory Event.fromJson(Map<String, dynamic> json) {
@@ -49,6 +51,7 @@ class Event {
       createdAt: json['created_at'] != null 
           ? DateTime.parse(json['created_at']) 
           : DateTime.now(),
+      projectId: json['project_id'] ?? 'default',
     );
   }
 
@@ -66,6 +69,7 @@ class Event {
       'alarm_minutes': alarmMinutes,
       'created_by': createdBy,
       'created_at': createdAt.toIso8601String(),
+      'project_id': projectId,
     };
   }
 
@@ -82,6 +86,7 @@ class Event {
     int? alarmMinutes,
     int? createdBy,
     DateTime? createdAt,
+    String? projectId,
   }) {
     return Event(
       id: id ?? this.id,
@@ -96,6 +101,7 @@ class Event {
       alarmMinutes: alarmMinutes ?? this.alarmMinutes,
       createdBy: createdBy ?? this.createdBy,
       createdAt: createdAt ?? this.createdAt,
+      projectId: projectId ?? this.projectId,
     );
   }
 

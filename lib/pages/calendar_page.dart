@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../providers/language_provider.dart';
 import '../services/event_service.dart';
+import '../services/local_database.dart';
 
 class CalendarPage extends StatefulWidget {
   const CalendarPage({super.key});
@@ -15,9 +16,36 @@ class _CalendarPageState extends State<CalendarPage> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   CalendarFormat _calendarFormat = CalendarFormat.month;
+  List<Map<String, dynamic>> _events = [];
+  bool _isLoading = true;
   
-  // 이벤트 목록 관리
-  List<Map<String, dynamic>> get _events => EventService.getEvents();
+  @override
+  void initState() {
+    super.initState();
+    _loadEvents();
+  }
+
+  // AppStateService 구독 제거 - 무한루프 방지
+  
+  Future<void> _loadEvents() async {
+    setState(() {
+      _isLoading = true;
+    });
+    
+    try {
+      final events = await LocalDatabase.getEvents();
+      setState(() {
+        _events = events;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading events: $e');
+      setState(() {
+        _events = [];
+        _isLoading = false;
+      });
+    }
+  }
 
   // 선택된 날짜의 이벤트 필터링
   List<Map<String, dynamic>> _getEventsForDay(DateTime day) {
@@ -64,6 +92,10 @@ class _CalendarPageState extends State<CalendarPage> {
       appBar: AppBar(
         title: Text(lang.getText('캘린더', 'Calendar')),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadEvents,
+          ),
           IconButton(
             icon: const Icon(Icons.today),
             onPressed: () {

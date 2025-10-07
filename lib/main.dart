@@ -11,6 +11,8 @@ import 'providers/message_provider.dart';
 import 'providers/comment_provider.dart';
 import 'services/notification_service.dart';
 import 'services/notification_settings.dart'; // 사용자님의 완벽한 그 파일입니다.
+import 'services/app_state_service.dart';
+import 'services/local_database.dart';
 
 // 2. 시작 페이지를 Import 합니다.
 import 'pages/login_page.dart';
@@ -31,6 +33,7 @@ void main() async {
   final themeProvider = await ThemeProvider.initialize();
   await NotificationSettings.initialize(); // 사용자님의 알림 설정 서비스 초기화
   await NotificationService.initialize();  // 푸시 알림 서비스 초기화
+  await LocalDatabase.initialize(); // 로컬 데이터베이스 초기화
 
   // 5. 앱을 실행합니다.
   runApp(
@@ -43,6 +46,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => MessageProvider()),
         ChangeNotifierProvider(create: (_) => CommentProvider()),
+        ChangeNotifierProvider(create: (_) => AppStateService()),
       ],
       child: const WbsMobileApp(),
     ),
@@ -87,11 +91,21 @@ class WbsMobileApp extends StatelessWidget {
             },
             '/notification_settings': (context) => const NotificationSettingsPage(),
             '/project_detail': (context) {
-              final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+              final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+              if (args == null) {
+                return const Scaffold(
+                  body: Center(child: Text('프로젝트 정보를 찾을 수 없습니다.')),
+                );
+              }
               return ProjectDetailPage(project: args);
             },
             '/edit_project': (context) {
-              final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+              final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+              if (args == null) {
+                return const Scaffold(
+                  body: Center(child: Text('프로젝트 정보를 찾을 수 없습니다.')),
+                );
+              }
               return EditProjectPage(project: args);
             },
           },

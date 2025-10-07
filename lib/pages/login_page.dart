@@ -3,9 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../services/api_service.dart';
 import '../providers/language_provider.dart';
-// import 'project_list_page.dart';
 import 'main_navigation_page.dart';
-import 'social_login_page.dart'; // 소셜 로그인 페이지를 임포트합니다.
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -163,7 +161,7 @@ class _LoginPageState extends State<LoginPage> {
                   ElevatedButton.icon(
                     onPressed: () {
                       Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const SocialLoginPage()),
+                        MaterialPageRoute(builder: (_) => const LoginPage()),
                       );
                     },
                     icon: const Icon(Icons.login),

@@ -29,6 +29,11 @@ class AppStateService extends ChangeNotifier {
     notifyListeners();
   }
 
+  // 이벤트 새로고침 알림
+  void refreshEvents() {
+    notifyListeners();
+  }
+
   // 팀 멤버 추가
   void addTeamMember(Map<String, dynamic> member) {
     _teamMembers.add(member);

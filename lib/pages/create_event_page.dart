@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/language_provider.dart';
+import '../services/local_database.dart';
+import '../services/app_state_service.dart';
 
 // 이벤트 생성 페이지
 class CreateEventPage extends StatefulWidget {
   final Function(Map<String, dynamic>)? onEventCreated;
+  final String? projectId; // 프로젝트 ID 추가
   
   const CreateEventPage({
     super.key,
     this.onEventCreated,
+    this.projectId,
   });
 
   @override
@@ -24,16 +28,51 @@ class _CreateEventPageState extends State<CreateEventPage> {
   DateTime? _endDate;
   final _locationController = TextEditingController();
   Color _selectedColor = Colors.blue;
+  String _selectedAssignee = '나'; // 담당자 선택
+  List<Map<String, dynamic>> _projects = [];
+  String? _selectedProjectId;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedProjectId = widget.projectId;
+    _loadProjects();
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // 전달된 날짜가 있으면 초기값으로 설정
+    // 전달된 날짜가 있으면 초기값으로 설정 (한 번만)
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    if (args != null && args['selectedDate'] != null) {
+    if (args != null && args['selectedDate'] != null && _startDate == null) {
       final selectedDate = args['selectedDate'] as DateTime;
+      // 고정값 제거 - 선택된 날짜를 기준으로 동적 설정
       _startDate = DateTime(selectedDate.year, selectedDate.month, selectedDate.day, 9, 0);
-      _endDate = DateTime(selectedDate.year, selectedDate.month, selectedDate.day, 17, 0); // 종료 시간을 17시로 설정
+      _endDate = DateTime(selectedDate.year, selectedDate.month, selectedDate.day, 17, 0);
+    } else if (_startDate == null) {
+      // 전달된 날짜가 없으면 현재 날짜 기준으로 설정
+      final now = DateTime.now();
+      _startDate = DateTime(now.year, now.month, now.day, 9, 0);
+      _endDate = DateTime(now.year, now.month, now.day, 17, 0);
+    }
+  }
+
+  Future<void> _loadProjects() async {
+    try {
+      // 샘플 프로젝트 생성 (데이터가 없을 경우)
+      await LocalDatabase.createSampleProjects();
+      final projects = await LocalDatabase.getProjects();
+      setState(() {
+        _projects = projects;
+        if (_selectedProjectId == null && projects.isNotEmpty) {
+          _selectedProjectId = projects.first['id']?.toString();
+        }
+      });
+    } catch (e) {
+      print('Error loading projects: $e');
+      setState(() {
+        _projects = [];
+      });
     }
   }
 
@@ -67,6 +106,45 @@ class _CreateEventPageState extends State<CreateEventPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // 프로젝트 선택
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        lang.getText('프로젝트 선택', 'Select Project'),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                        value: _projects.isEmpty ? null : _selectedProjectId,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          hintText: '프로젝트를 선택하세요',
+                        ),
+                        items: _projects.isEmpty 
+                          ? [DropdownMenuItem<String>(value: '', child: Text('프로젝트가 없습니다'))]
+                          : _projects.map((project) {
+                              return DropdownMenuItem<String>(
+                                value: project['id']?.toString() ?? '',
+                                child: Text(project['name'] ?? '제목 없음'),
+                              );
+                            }).toList(),
+                        onChanged: _projects.isEmpty ? null : (String? value) {
+                          setState(() {
+                            _selectedProjectId = value;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
               // 이벤트 제목
               Card(
                 child: Padding(
@@ -327,8 +405,8 @@ class _CreateEventPageState extends State<CreateEventPage> {
                         onTap: () async {
                           final date = await showDatePicker(
                             context: context,
-                            initialDate: _startDate ?? DateTime.now(),
-                            firstDate: _startDate ?? DateTime(2020),
+                            initialDate: _endDate ?? _startDate ?? DateTime.now(),
+                            firstDate: _startDate != null ? _startDate! : DateTime(2020),
                             lastDate: DateTime(2030),
                           );
                           if (date != null) {
@@ -370,6 +448,45 @@ class _CreateEventPageState extends State<CreateEventPage> {
                   ),
                 ),
               ),
+              const SizedBox(height: 16),
+              
+              // 담당자 선택
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        '담당자',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                        value: _selectedAssignee,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                        ),
+                        items: [
+                          DropdownMenuItem(value: '나', child: Text('나 (개인)')),
+                          DropdownMenuItem(value: '기획팀', child: Text('기획팀')),
+                          DropdownMenuItem(value: '개발팀', child: Text('개발팀')),
+                          DropdownMenuItem(value: '디자인팀', child: Text('디자인팀')),
+                          DropdownMenuItem(value: 'QA팀', child: Text('QA팀')),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedAssignee = value!;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
               const SizedBox(height: 24),
               
               // 저장 버튼
@@ -391,7 +508,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
     );
   }
 
-  void _saveEvent() {
+  void _saveEvent() async {
     if (_formKey.currentState!.validate()) {
       // 이벤트 생성 로직
       final newEvent = {
@@ -404,25 +521,43 @@ class _CreateEventPageState extends State<CreateEventPage> {
         'start_time': '${_startDate?.hour.toString().padLeft(2, '0') ?? '09'}:${_startDate?.minute.toString().padLeft(2, '0') ?? '00'}',
         'end_time': '${_endDate?.hour.toString().padLeft(2, '0') ?? '10'}:${_endDate?.minute.toString().padLeft(2, '0') ?? '00'}',
         'start_date': _startDate?.toIso8601String().split('T')[0],
-        'end_date': _endDate?.toIso8601String().split('T')[0],
+        'end_date': _endDate?.toIso8601String().split('T')[0] ?? _startDate?.toIso8601String().split('T')[0],
         'location': _locationController.text.isNotEmpty ? _locationController.text : '미정',
         'color': '#${_selectedColor.value.toRadixString(16).substring(2)}',
         'created_at': DateTime.now().toIso8601String().split('T')[0],
+        'project_id': _selectedProjectId ?? widget.projectId ?? 'default', // 프로젝트 ID 추가
+        'assignee': _selectedAssignee, // 담당자 추가
       };
       
-      // 콜백 호출하여 이벤트 목록에 추가
-      if (widget.onEventCreated != null) {
-        widget.onEventCreated!(newEvent);
+      try {
+        // 실제 데이터베이스에 저장
+        await LocalDatabase.addEvent(newEvent);
+        
+        // AppStateService에 이벤트 추가
+        final appState = Provider.of<AppStateService>(context, listen: false);
+        appState.addEvent(newEvent);
+        
+        // 성공 메시지 표시
+        final lang = Provider.of<LanguageProvider>(context, listen: false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(lang.getText('이벤트가 생성되었습니다.', 'Event created successfully.')),
+            backgroundColor: Colors.green,
+          ),
+        );
+        
+        // 이전 페이지로 돌아가기 (새로고침 신호 포함)
+        Navigator.pop(context, {'success': true, 'event': newEvent});
+      } catch (e) {
+        // 오류 메시지 표시
+        final lang = Provider.of<LanguageProvider>(context, listen: false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(lang.getText('이벤트 생성에 실패했습니다.', 'Failed to create event.')),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
-      
-      // 성공 메시지 표시
-      final lang = Provider.of<LanguageProvider>(context, listen: false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(lang.getText('이벤트가 생성되었습니다.', 'Event created successfully.'))),
-      );
-      
-      // 이전 페이지로 돌아가기
-      Navigator.pop(context, newEvent);
     }
   }
 

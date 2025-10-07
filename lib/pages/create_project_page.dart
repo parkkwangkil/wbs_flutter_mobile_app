@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/language_provider.dart';
+import '../services/local_database.dart';
 
 class CreateProjectPage extends StatefulWidget {
   const CreateProjectPage({super.key});
@@ -15,6 +16,7 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
   final _descriptionController = TextEditingController();
   DateTime? _startDate;
   DateTime? _endDate;
+  String _projectType = 'personal'; // 기본값: 개인 프로젝트
 
   @override
   void dispose() {
@@ -41,17 +43,42 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
     }
   }
 
-  void _submitForm() {
+  void _submitForm() async {
     if (_formKey.currentState!.validate()) {
-      // 성공 메시지 표시
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('프로젝트 "${_nameController.text}"가 생성되었습니다.'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      // 프로젝트 데이터 생성
+      final newProject = {
+        'id': DateTime.now().millisecondsSinceEpoch.toString(),
+        'name': _nameController.text,
+        'description': _descriptionController.text,
+        'type': _projectType,
+        'status': 'in_progress', // 진행중으로 설정
+        'start_date': _startDate?.toIso8601String().split('T')[0] ?? DateTime.now().toIso8601String().split('T')[0],
+        'end_date': _endDate?.toIso8601String().split('T')[0] ?? DateTime.now().add(const Duration(days: 30)).toIso8601String().split('T')[0],
+        'created_at': DateTime.now().toIso8601String().split('T')[0],
+      };
       
-      Navigator.of(context).pop(true); // 성공적으로 생성되었음을 이전 페이지에 알림
+      try {
+        // LocalDatabase에 프로젝트 저장
+        await LocalDatabase.addProject(newProject);
+        
+        // 성공 메시지 표시
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('프로젝트 "${_nameController.text}"가 생성되었습니다.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        
+        Navigator.of(context).pop(newProject); // 생성된 프로젝트 데이터를 이전 페이지에 전달
+      } catch (e) {
+        // 에러 메시지 표시
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('프로젝트 생성 중 오류가 발생했습니다: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -108,6 +135,52 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
                         border: const OutlineInputBorder(),
                       ),
                       maxLines: 3,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      lang.getText('프로젝트 타입', 'Project Type'),
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: RadioListTile<String>(
+                            title: Row(
+                              children: [
+                                const Icon(Icons.person, color: Colors.blue),
+                                const SizedBox(width: 8),
+                                Text(lang.getText('개인', 'Personal')),
+                              ],
+                            ),
+                            value: 'personal',
+                            groupValue: _projectType,
+                            onChanged: (value) {
+                              setState(() {
+                                _projectType = value!;
+                              });
+                            },
+                          ),
+                        ),
+                        Expanded(
+                          child: RadioListTile<String>(
+                            title: Row(
+                              children: [
+                                const Icon(Icons.group, color: Colors.green),
+                                const SizedBox(width: 8),
+                                Text(lang.getText('팀', 'Team')),
+                              ],
+                            ),
+                            value: 'team',
+                            groupValue: _projectType,
+                            onChanged: (value) {
+                              setState(() {
+                                _projectType = value!;
+                              });
+                            },
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

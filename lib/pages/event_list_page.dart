@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/language_provider.dart';
 import '../services/event_service.dart';
+import '../services/local_database.dart';
 
 class EventListPage extends StatefulWidget {
   const EventListPage({super.key});
@@ -11,8 +12,36 @@ class EventListPage extends StatefulWidget {
 }
 
 class _EventListPageState extends State<EventListPage> {
-  // 이벤트 서비스 사용
-  List<Map<String, dynamic>> get events => EventService.getEvents();
+  List<Map<String, dynamic>> _events = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadEvents();
+  }
+
+  // AppStateService 구독 제거 - 무한루프 방지
+
+  Future<void> _loadEvents() async {
+    setState(() {
+      _isLoading = true;
+    });
+    
+    try {
+      final events = await LocalDatabase.getEvents();
+      setState(() {
+        _events = events;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading events: $e');
+      setState(() {
+        _events = [];
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,12 +50,38 @@ class _EventListPageState extends State<EventListPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(lang.getText('이벤트/일정', 'Events/Schedule')),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadEvents,
+          ),
+        ],
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(8.0),
-        itemCount: events.length,
-        itemBuilder: (context, index) {
-          final event = events[index];
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _events.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.event_note,
+                        size: 64,
+                        color: Colors.grey[400],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        lang.getText('등록된 이벤트가 없습니다.', 'No events registered.'),
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(8.0),
+                  itemCount: _events.length,
+                  itemBuilder: (context, index) {
+                    final event = _events[index];
           return Card(
             child: ListTile(
               leading: Container(

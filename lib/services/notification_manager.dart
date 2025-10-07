@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'notification_service.dart';
-import 'email_service.dart';
 import 'notification_settings.dart';
 
 class NotificationManager {
@@ -42,7 +41,7 @@ class NotificationManager {
     _notificationController.add(List.unmodifiable(_notifications));
 
     // 푸시 알림 전송
-    if (NotificationSettings.pushNotifications) {
+    if (NotificationSettings.getSetting(NotificationSettingKey.pushNotifications)) {
       if (scheduledTime != null) {
         await NotificationService.scheduleNotification(
           id: int.parse(notification['id'] as String),
@@ -62,8 +61,8 @@ class NotificationManager {
     }
 
     // 이메일 알림 전송
-    if (sendEmail && emailTo != null && NotificationSettings.emailNotifications) {
-      await EmailService.sendEmail(
+    if (sendEmail && emailTo != null && NotificationSettings.getSetting(NotificationSettingKey.emailNotifications)) {
+      await _sendEmail(
         to: emailTo,
         subject: title,
         body: body,
@@ -79,7 +78,7 @@ class NotificationManager {
     String? projectUrl,
     String? emailTo,
   }) async {
-    if (!NotificationSettings.projectUpdates) return;
+    if (!NotificationSettings.getSetting(NotificationSettingKey.projectUpdates)) return;
 
     final title = '프로젝트 알림: $projectName';
     final body = '$action: $message';
@@ -102,7 +101,7 @@ class NotificationManager {
     required String message,
     String? emailTo,
   }) async {
-    if (!NotificationSettings.eventReminders) return;
+    if (!NotificationSettings.getSetting(NotificationSettingKey.eventReminders)) return;
 
     final title = '이벤트 알림: $eventName';
     final body = '${eventDate.toString().split(' ')[0]} $location: $message';
@@ -123,7 +122,7 @@ class NotificationManager {
     required String message,
     String? emailTo,
   }) async {
-    if (!NotificationSettings.teamNotifications) return;
+    if (!NotificationSettings.getSetting(NotificationSettingKey.teamNotifications)) return;
 
     final title = '팀 알림: $teamName';
     final body = '$action: $message';
@@ -143,7 +142,7 @@ class NotificationManager {
     required String message,
     String? emailTo,
   }) async {
-    if (!NotificationSettings.systemAlerts) return;
+    if (!NotificationSettings.getSetting(NotificationSettingKey.systemAlerts)) return;
 
     await addNotification(
       title: title,
@@ -161,7 +160,7 @@ class NotificationManager {
     required String action,
     String? emailTo,
   }) async {
-    if (!NotificationSettings.milestoneAlerts) return;
+    if (!NotificationSettings.getSetting(NotificationSettingKey.milestoneAlerts)) return;
 
     final title = '마일스톤 알림: $projectName';
     final body = '$milestoneName: $action';
@@ -182,7 +181,7 @@ class NotificationManager {
     required String type,
     String? emailTo,
   }) async {
-    if (!NotificationSettings.deadlineWarnings) return;
+    if (!NotificationSettings.getSetting(NotificationSettingKey.deadlineWarnings)) return;
 
     final daysLeft = deadline.difference(DateTime.now()).inDays;
     final title = '마감일 경고: $itemName';
@@ -203,7 +202,7 @@ class NotificationManager {
     required List<Map<String, dynamic>> events,
     required String emailTo,
   }) async {
-    if (!NotificationSettings.dailySummary) return;
+    if (!NotificationSettings.getSetting(NotificationSettingKey.dailySummary)) return;
 
     final title = '일일 요약 - ${DateTime.now().toString().split(' ')[0]}';
     final body = '프로젝트 ${projects.length}개, 이벤트 ${events.length}개';
@@ -223,7 +222,7 @@ class NotificationManager {
     required List<Map<String, dynamic>> upcomingEvents,
     required String emailTo,
   }) async {
-    if (!NotificationSettings.weeklySummary) return;
+    if (!NotificationSettings.getSetting(NotificationSettingKey.weeklySummary)) return;
 
     final title = '주간 요약 - ${DateTime.now().toString().split(' ')[0]}';
     final body = '완료된 프로젝트 ${completedProjects.length}개, 예정된 이벤트 ${upcomingEvents.length}개';
@@ -309,5 +308,33 @@ class NotificationManager {
       
       return title.contains(searchQuery) || body.contains(searchQuery);
     }).toList();
+  }
+
+  // 내장 이메일 전송 함수
+  static Future<bool> _sendEmail({
+    required String to,
+    required String subject,
+    required String body,
+  }) async {
+    print('--- 이메일 발송 시도 ---');
+    print('수신: $to');
+    print('제목: $subject');
+    print('---------------------');
+    print(body);
+    print('---------------------');
+
+    // 가짜 네트워크 딜레이
+    await Future.delayed(const Duration(seconds: 1));
+
+    // 90% 확률로 성공을 시뮬레이션
+    final success = DateTime.now().millisecond % 10 != 0;
+    
+    if (success) {
+      print('이메일 발송 성공');
+      return true;
+    } else {
+      print('이메일 발송 실패');
+      return false;
+    }
   }
 }

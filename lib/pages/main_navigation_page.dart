@@ -9,6 +9,7 @@ import 'profile_page.dart';
 import 'data_analysis_page.dart';
 import 'gantt_chart_page.dart';
 import 'todo_page.dart';
+import 'chat_list_page.dart';
 
 class MainNavigationPage extends StatefulWidget {
   final String? currentUser;
@@ -32,8 +33,9 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
               const EventListPage(),
               const TeamPage(projectId: 'default'),
               const DataAnalysisPage(),
-              const GanttChartPage(projectId: 'default'),
+              const GanttChartPage(),
               const TodoPage(),
+              const ChatListPage(),
               ProfilePage(username: widget.currentUser ?? 'User'),
             ]);
   }
@@ -90,6 +92,11 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
             icon: const Icon(Icons.checklist_outlined),
             activeIcon: const Icon(Icons.checklist),
             label: lang.getText('할 일', 'Todo'),
+          ),
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.chat_bubble_outline),
+            activeIcon: const Icon(Icons.chat_bubble),
+            label: lang.getText('채팅', 'Chat'),
           ),
           BottomNavigationBarItem(
             icon: const Icon(Icons.person_outline),
