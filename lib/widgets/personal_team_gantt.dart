@@ -299,21 +299,43 @@ class _PersonalTeamGanttState extends State<PersonalTeamGantt> {
                   ),
                 ),
                 const SizedBox(height: 4),
-                // 진행률 바
-                LinearProgressIndicator(
-                  value: progress,
-                  backgroundColor: Colors.grey[300],
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    _getTaskColor(task['color'] ?? 'blue'),
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '${(progress * 100).toInt()}% 완료',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 10,
-                  ),
+                // 진행률 슬라이더
+                Row(
+                  children: [
+                    Expanded(
+                      child: Slider(
+                        value: progress,
+                        min: 0.0,
+                        max: 1.0,
+                        divisions: 100, // 1%씩 증가
+                        label: '${(progress * 100).toInt()}%',
+                        activeColor: _getTaskColor(task['color'] ?? 'blue'),
+                        onChanged: (value) {
+                          _updateTaskProgress(task, value);
+                        },
+                      ),
+                    ),
+                    Container(
+                      width: 40,
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: _getTaskColor(task['color'] ?? 'blue').withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: _getTaskColor(task['color'] ?? 'blue').withOpacity(0.3),
+                        ),
+                      ),
+                      child: Text(
+                        '${(progress * 100).toInt()}%',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: _getTaskColor(task['color'] ?? 'blue'),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -451,6 +473,41 @@ class _PersonalTeamGanttState extends State<PersonalTeamGantt> {
       case 'pink': return Colors.pink[400]!;
       case 'teal': return Colors.teal[400]!;
       default: return Colors.blue[400]!;
+    }
+  }
+
+  // 작업 진행률 업데이트
+  void _updateTaskProgress(Map<String, dynamic> task, double newProgress) {
+    setState(() {
+      task['progress'] = newProgress;
+    });
+    
+    // 데이터베이스에 저장
+    _saveTaskProgress(task);
+  }
+
+  // 작업 진행률을 데이터베이스에 저장
+  Future<void> _saveTaskProgress(Map<String, dynamic> task) async {
+    try {
+      // 간트 작업 업데이트
+      await LocalDatabase.updateGanttTask(
+        task['id'],
+        {
+          'progress': task['progress'],
+        },
+      );
+      
+      // 연결된 이벤트가 있다면 이벤트 진행률도 업데이트
+      if (task['event_id'] != null) {
+        await LocalDatabase.updateEvent(
+          task['event_id'],
+          {
+            'progress': task['progress'],
+          },
+        );
+      }
+    } catch (e) {
+      print('Error saving task progress: $e');
     }
   }
 }
