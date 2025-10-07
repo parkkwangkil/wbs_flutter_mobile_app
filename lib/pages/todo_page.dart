@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/language_provider.dart';
+import '../services/local_database.dart';
+import '../services/app_state_service.dart';
 
 class TodoPage extends StatefulWidget {
   const TodoPage({super.key});
@@ -13,84 +15,123 @@ class _TodoPageState extends State<TodoPage> {
   List<Map<String, dynamic>> _todos = [];
   final _todoController = TextEditingController();
   String _selectedFilter = 'all';
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadInitialTodos();
+    _loadTodos();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // AppStateService 변경사항 감지하여 자동 새로고침
+    final appState = Provider.of<AppStateService>(context, listen: false);
+    appState.addListener(_onAppStateChanged);
   }
 
   @override
   void dispose() {
+    final appState = Provider.of<AppStateService>(context, listen: false);
+    appState.removeListener(_onAppStateChanged);
     _todoController.dispose();
     super.dispose();
   }
 
-  // 초기 To-do 데이터 로드
-  void _loadInitialTodos() {
+  void _onAppStateChanged() {
+    // 할일이 변경되었을 때 자동 새로고침
+    _loadTodos();
+  }
+
+  // 로컬 DB에서 할일 로드
+  Future<void> _loadTodos() async {
     setState(() {
-      _todos = [
-        {
-          'id': '1',
-          'title': '프로젝트 기획서 작성',
-          'completed': false,
-          'priority': 'high',
-          'createdAt': DateTime.now().subtract(const Duration(days: 2)),
-        },
-        {
-          'id': '2',
-          'title': 'UI/UX 디자인 검토',
-          'completed': true,
-          'priority': 'medium',
-          'createdAt': DateTime.now().subtract(const Duration(days: 1)),
-        },
-        {
-          'id': '3',
-          'title': '개발 환경 설정',
-          'completed': false,
-          'priority': 'high',
-          'createdAt': DateTime.now(),
-        },
-        {
-          'id': '4',
-          'title': '팀 미팅 준비',
-          'completed': false,
-          'priority': 'low',
-          'createdAt': DateTime.now(),
-        },
-      ];
+      _isLoading = true;
     });
+
+    try {
+      final todos = await LocalDatabase.getTodos();
+      setState(() {
+        _todos = todos;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading todos: $e');
+      setState(() {
+        _todos = [];
+        _isLoading = false;
+      });
+    }
   }
 
   // To-do 추가
-  void _addTodo() {
+  Future<void> _addTodo() async {
     if (_todoController.text.isNotEmpty) {
-      setState(() {
-        _todos.add({
-          'id': DateTime.now().millisecondsSinceEpoch.toString(),
-          'title': _todoController.text,
-          'completed': false,
-          'priority': 'medium',
-          'createdAt': DateTime.now(),
-        });
-      });
-      _todoController.clear();
+      final newTodo = {
+        'id': DateTime.now().millisecondsSinceEpoch.toString(),
+        'title': _todoController.text,
+        'completed': false,
+        'priority': 'medium',
+        'createdAt': DateTime.now().toIso8601String(),
+      };
+
+      try {
+        await LocalDatabase.addTodo(newTodo);
+        _todoController.clear();
+        await _loadTodos(); // DB에서 다시 로드
+        
+        // AppStateService에 알림
+        final appState = Provider.of<AppStateService>(context, listen: false);
+        appState.notifyListeners();
+      } catch (e) {
+        print('Error adding todo: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('할일 추가 중 오류가 발생했습니다.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
   // To-do 완료 상태 토글
-  void _toggleTodo(String id) {
-    setState(() {
+  Future<void> _toggleTodo(String id) async {
+    try {
       final todo = _todos.firstWhere((todo) => todo['id'] == id);
-      todo['completed'] = !todo['completed'];
-    });
+      final updatedTodo = Map<String, dynamic>.from(todo);
+      updatedTodo['completed'] = !todo['completed'];
+      
+      await LocalDatabase.updateTodo(id, updatedTodo);
+      await _loadTodos(); // DB에서 다시 로드
+      
+      // AppStateService에 알림
+      final appState = Provider.of<AppStateService>(context, listen: false);
+      appState.notifyListeners();
+    } catch (e) {
+      print('Error toggling todo: $e');
+    }
   }
 
   // To-do 삭제
-  void _deleteTodo(String id) {
-    setState(() {
-      _todos.removeWhere((todo) => todo['id'] == id);
-    });
+  Future<void> _deleteTodo(String id) async {
+    try {
+      await LocalDatabase.deleteTodo(id);
+      await _loadTodos(); // DB에서 다시 로드
+      
+      // AppStateService에 알림
+      final appState = Provider.of<AppStateService>(context, listen: false);
+      appState.notifyListeners();
+    } catch (e) {
+      print('Error deleting todo: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('할일 삭제 중 오류가 발생했습니다.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   // 모든 To-do 초기화
@@ -108,17 +149,35 @@ class _TodoPageState extends State<TodoPage> {
               child: Text(lang.getText('취소', 'Cancel')),
             ),
             ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  _todos.clear();
-                });
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(lang.getText('모든 할 일이 삭제되었습니다.', 'All todos have been cleared.')),
-                    backgroundColor: Colors.red,
-                  ),
-                );
+              onPressed: () async {
+                try {
+                  // 모든 할일 삭제
+                  for (var todo in _todos) {
+                    await LocalDatabase.deleteTodo(todo['id']);
+                  }
+                  await _loadTodos();
+                  
+                  // AppStateService에 알림
+                  final appState = Provider.of<AppStateService>(context, listen: false);
+                  appState.notifyListeners();
+                  
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(lang.getText('모든 할 일이 삭제되었습니다.', 'All todos have been cleared.')),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                } catch (e) {
+                  print('Error clearing all todos: $e');
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('삭제 중 오류가 발생했습니다.'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               child: Text(lang.getText('삭제', 'Delete')),
@@ -130,17 +189,35 @@ class _TodoPageState extends State<TodoPage> {
   }
 
   // 완료된 To-do만 삭제
-  void _clearCompletedTodos() {
+  Future<void> _clearCompletedTodos() async {
     final lang = Provider.of<LanguageProvider>(context, listen: false);
-    setState(() {
-      _todos.removeWhere((todo) => todo['completed'] == true);
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(lang.getText('완료된 할 일이 삭제되었습니다.', 'Completed todos have been cleared.')),
-        backgroundColor: Colors.orange,
-      ),
-    );
+    try {
+      // 완료된 할일들만 삭제
+      final completedTodos = _todos.where((todo) => todo['completed'] == true).toList();
+      for (var todo in completedTodos) {
+        await LocalDatabase.deleteTodo(todo['id']);
+      }
+      await _loadTodos();
+      
+      // AppStateService에 알림
+      final appState = Provider.of<AppStateService>(context, listen: false);
+      appState.notifyListeners();
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(lang.getText('완료된 할 일이 삭제되었습니다.', 'Completed todos have been cleared.')),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    } catch (e) {
+      print('Error clearing completed todos: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('삭제 중 오류가 발생했습니다.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   // 필터링된 To-do 목록
@@ -199,7 +276,9 @@ class _TodoPageState extends State<TodoPage> {
           ),
         ],
       ),
-      body: Column(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
         children: [
           // 필터 버튼
           Container(

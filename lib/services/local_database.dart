@@ -651,4 +651,5 @@ class LocalDatabase {
       ]);
     }
   }
+
 }
