@@ -21,6 +21,10 @@ import 'pages/event_detail_page.dart';
 import 'pages/notification_settings_page.dart';
 import 'pages/project_detail_page.dart';
 import 'pages/edit_project_page.dart';
+import 'pages/user_settings_page.dart';
+import 'pages/team_page.dart';
+import 'pages/admin_page.dart';
+import 'pages/subscription_page.dart';
 
 // 비동기 main 함수로 변경합니다.
 void main() async {
@@ -90,6 +94,14 @@ class WbsMobileApp extends StatelessWidget {
               );
             },
             '/notification_settings': (context) => const NotificationSettingsPage(),
+            '/settings': (context) {
+              // 현재 사용자 정보를 가져와서 전달
+              final currentUser = ModalRoute.of(context)?.settings.arguments as String? ?? 'test';
+              return UserSettingsPage(currentUser: currentUser);
+            },
+            '/team_management': (context) => const TeamPage(projectId: 'admin'),
+            '/admin': (context) => const AdminPage(),
+            '/subscription': (context) => const SubscriptionPage(),
             '/project_detail': (context) {
               final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
               if (args == null) {

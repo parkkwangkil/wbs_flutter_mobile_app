@@ -10,6 +10,7 @@ import 'data_analysis_page.dart';
 import 'gantt_chart_page.dart';
 import 'todo_page.dart';
 import 'chat_list_page.dart';
+import 'user_settings_page.dart';
 
 class MainNavigationPage extends StatefulWidget {
   final String? currentUser;

@@ -45,42 +45,6 @@ class LocalDatabase {
     await saveProjects(projects);
   }
   
-  // 테스트용 샘플 프로젝트 생성
-  static Future<void> createSampleProjects() async {
-    final projects = await getProjects();
-    if (projects.isEmpty) {
-      final sampleProjects = [
-        {
-          'id': '1',
-          'name': 'WBS 모바일 앱 개발',
-          'description': '프로젝트 관리 모바일 애플리케이션 개발',
-          'status': 'in_progress',
-          'start_date': '2025-10-01',
-          'end_date': '2025-12-31',
-          'created_at': DateTime.now().toIso8601String().split('T')[0],
-        },
-        {
-          'id': '2',
-          'name': 'UI/UX 디자인',
-          'description': '사용자 인터페이스 및 사용자 경험 디자인',
-          'status': 'completed',
-          'start_date': '2025-09-01',
-          'end_date': '2025-09-30',
-          'created_at': DateTime.now().toIso8601String().split('T')[0],
-        },
-        {
-          'id': '3',
-          'name': '백엔드 API 개발',
-          'description': '서버 사이드 API 및 데이터베이스 설계',
-          'status': 'on_hold',
-          'start_date': '2025-10-15',
-          'end_date': '2025-11-30',
-          'created_at': DateTime.now().toIso8601String().split('T')[0],
-        },
-      ];
-      await saveProjects(sampleProjects);
-    }
-  }
   
   // 프로젝트 진행률 계산
   static Future<double> getProjectProgress(String projectId) async {
@@ -223,182 +187,6 @@ class LocalDatabase {
     await _prefs!.remove('todos');
   }
   
-  // 초기 샘플 데이터 생성
-  static Future<void> initializeSampleData() async {
-    // 프로젝트 샘플 데이터
-    final projects = await getProjects();
-    if (projects.isEmpty) {
-      await saveProjects([
-        {
-          'id': 'p_001',
-          'name': 'WBS 모바일 앱 개발',
-          'description': 'Flutter 기반의 WBS 관리 앱',
-          'status': 'in_progress',
-          'start_date': '2025-01-01',
-          'end_date': '2025-03-31',
-          'created_at': '2025-01-01',
-        },
-        {
-          'id': 'p_002',
-          'name': '사내 인트라넷 고도화',
-          'description': '레거시 시스템 마이그레이션',
-          'status': 'on_hold',
-          'start_date': '2025-02-01',
-          'end_date': '2025-06-30',
-          'created_at': '2025-01-15',
-        },
-        {
-          'id': 'p_003',
-          'name': '2025년 신제품 런칭',
-          'description': '마케팅 및 프로모션 기획',
-          'status': 'completed',
-          'start_date': '2024-10-01',
-          'end_date': '2024-12-31',
-          'created_at': '2024-09-15',
-        },
-      ]);
-    }
-    
-    // 이벤트 샘플 데이터 (프로젝트 중심)
-    final events = await getEvents();
-    if (events.isEmpty) {
-      await saveEvents([
-        // WBS 모바일 앱 개발 프로젝트의 이벤트들
-        {
-          'id': 'e_001',
-          'project_id': 'p_001',
-          'title': '프로젝트 기획 회의',
-          'description': 'WBS 앱 개발 프로젝트 기획 및 일정 수립',
-          'date': '2025-01-06',
-          'time': '10:00 AM',
-          'location': '3층 대회의실',
-          'start_date': '2025-01-06',
-          'end_date': '2025-01-06',
-          'start_time': '10:00',
-          'end_time': '11:00',
-          'color': '#2196F3',
-          'status': 'completed',
-          'created_at': '2025-01-01',
-        },
-        {
-          'id': 'e_002',
-          'project_id': 'p_001',
-          'title': 'UI/UX 설계',
-          'description': '앱 인터페이스 및 사용자 경험 설계',
-          'date': '2025-01-10',
-          'time': '02:00 PM',
-          'location': '디자인팀 사무실',
-          'start_date': '2025-01-10',
-          'end_date': '2025-01-12',
-          'start_time': '14:00',
-          'end_time': '17:00',
-          'color': '#4CAF50',
-          'status': 'completed',
-          'created_at': '2025-01-01',
-        },
-        {
-          'id': 'e_003',
-          'project_id': 'p_001',
-          'title': '개발 시작',
-          'description': 'Flutter 기반 앱 개발 시작',
-          'date': '2025-01-15',
-          'time': '09:00 AM',
-          'location': '개발팀 사무실',
-          'start_date': '2025-01-15',
-          'end_date': '2025-01-25',
-          'start_time': '09:00',
-          'end_time': '18:00',
-          'color': '#FF9800',
-          'status': 'in_progress',
-          'created_at': '2025-01-01',
-        },
-        {
-          'id': 'e_004',
-          'project_id': 'p_001',
-          'title': '테스트 및 디버깅',
-          'description': '앱 테스트 및 버그 수정',
-          'date': '2025-01-20',
-          'time': '03:00 PM',
-          'location': 'QA팀 사무실',
-          'start_date': '2025-01-20',
-          'end_date': '2025-01-22',
-          'start_time': '15:00',
-          'end_time': '17:00',
-          'color': '#9C27B0',
-          'status': 'pending',
-          'created_at': '2025-01-01',
-        },
-        // 사내 인트라넷 고도화 프로젝트의 이벤트들
-        {
-          'id': 'e_005',
-          'project_id': 'p_002',
-          'title': '레거시 시스템 분석',
-          'description': '기존 시스템 분석 및 마이그레이션 계획 수립',
-          'date': '2025-02-01',
-          'time': '10:00 AM',
-          'location': 'IT팀 사무실',
-          'start_date': '2025-02-01',
-          'end_date': '2025-02-05',
-          'start_time': '10:00',
-          'end_time': '17:00',
-          'color': '#607D8B',
-          'status': 'pending',
-          'created_at': '2025-01-01',
-        },
-      ]);
-    }
-    
-
-  // 사용자 샘플 데이터
-    final users = await getUsers();
-    if (users.isEmpty) {
-      await saveUsers([
-        {
-          'id': 'admin',
-          'name': 'Admin',
-          'email': 'admin@wbs.com',
-          'password': '1111',
-          'role': 'admin',
-          'status': 'online',
-          'created_at': '2025-01-01',
-        },
-        {
-          'id': 'test',
-          'name': 'Test User',
-          'email': 'test@wbs.com',
-          'password': '1111',
-          'role': 'user',
-          'status': 'online',
-          'created_at': '2025-01-01',
-        },
-      ]);
-    }
-    
-    // 할 일 샘플 데이터
-    final todos = await getTodos();
-    if (todos.isEmpty) {
-      await saveTodos([
-        {
-          'id': 't_001',
-          'title': 'WBS 앱 개발 완료',
-          'completed': false,
-          'created_at': '2025-01-01',
-        },
-        {
-          'id': 't_002',
-          'title': '회의록 작성',
-          'completed': true,
-          'created_at': '2025-01-01',
-        },
-        {
-          'id': 't_003',
-          'title': '이메일 회신',
-          'completed': false,
-          'created_at': '2025-01-01',
-        },
-      ]);
-    }
-  }
   
   // 간트 차트 작업 관련 메서드들
   static Future<List<Map<String, dynamic>>> getGanttTasks(String? projectId) async {
@@ -583,41 +371,31 @@ class LocalDatabase {
       _prefs = await SharedPreferences.getInstance();
     }
     
-    // 샘플 데이터 생성
-    await _createSampleData();
+    // 가이드 데이터 생성
+    await _createGuideProjects();
   }
   
-  // 샘플 데이터 생성
-  static Future<void> _createSampleData() async {
-    // 프로젝트 샘플 데이터
+  // DB 가이드용 프로젝트 생성
+  static Future<void> _createGuideProjects() async {
+    // 프로젝트 가이드 데이터
     final projects = await getProjects();
     if (projects.isEmpty) {
       await saveProjects([
         {
-          'id': 'p_001',
+          'id': 'guide_team_001',
           'name': 'WBS 모바일 앱 개발',
-          'description': 'Flutter 기반의 WBS 관리 앱',
-          'type': 'team', // 개인/팀 구분
+          'description': 'Flutter 기반의 WBS 관리 앱 개발 프로젝트',
+          'type': 'team',
           'status': 'in_progress',
           'start_date': '2025-01-01',
           'end_date': '2025-03-31',
           'created_at': '2025-01-01',
         },
         {
-          'id': 'p_002',
-          'name': '사내 인트라넷 고도화',
-          'description': '레거시 시스템 마이그레이션',
-          'type': 'team', // 개인/팀 구분
-          'status': 'on_hold',
-          'start_date': '2025-02-01',
-          'end_date': '2025-06-30',
-          'created_at': '2025-01-01',
-        },
-        {
-          'id': 'p_003',
+          'id': 'guide_personal_001',
           'name': '개인 학습 프로젝트',
-          'description': 'Flutter 고급 기능 학습',
-          'type': 'personal', // 개인 프로젝트
+          'description': 'Flutter 고급 기능 학습 및 개인 포트폴리오 개발',
+          'type': 'personal',
           'status': 'in_progress',
           'start_date': '2025-01-15',
           'end_date': '2025-02-15',
@@ -626,7 +404,7 @@ class LocalDatabase {
       ]);
     }
     
-    // 사용자 샘플 데이터
+    // 사용자 가이드 데이터
     final users = await getUsers();
     if (users.isEmpty) {
       await saveUsers([
@@ -650,6 +428,400 @@ class LocalDatabase {
         },
       ]);
     }
+  }
+
+  // 팀 멤버 관련 메서드들
+  static Future<List<Map<String, dynamic>>> getTeamMembers() async {
+    final prefs = await SharedPreferences.getInstance();
+    final teamMembersJson = prefs.getString('team_members') ?? '[]';
+    return List<Map<String, dynamic>>.from(json.decode(teamMembersJson));
+  }
+
+  static Future<void> addTeamMember(Map<String, dynamic> member) async {
+    final prefs = await SharedPreferences.getInstance();
+    final teamMembers = await getTeamMembers();
+    
+    // ID가 없으면 생성
+    if (member['id'] == null) {
+      member['id'] = DateTime.now().millisecondsSinceEpoch.toString();
+    }
+    
+    teamMembers.add(member);
+    await prefs.setString('team_members', json.encode(teamMembers));
+  }
+
+  static Future<void> updateTeamMember(String id, Map<String, dynamic> updates) async {
+    final prefs = await SharedPreferences.getInstance();
+    final teamMembers = await getTeamMembers();
+    
+    final index = teamMembers.indexWhere((member) => member['id'] == id);
+    if (index != -1) {
+      teamMembers[index].addAll(updates);
+      await prefs.setString('team_members', json.encode(teamMembers));
+    }
+  }
+
+  static Future<void> deleteTeamMember(String id) async {
+    final prefs = await SharedPreferences.getInstance();
+    final teamMembers = await getTeamMembers();
+    
+    teamMembers.removeWhere((member) => member['id'] == id);
+    await prefs.setString('team_members', json.encode(teamMembers));
+  }
+
+  // 사용자 관리 관련 메서드들 (기존 메서드 확장)
+  static Future<void> updateUser(String id, Map<String, dynamic> updates) async {
+    final users = await getUsers();
+    
+    final index = users.indexWhere((user) => user['id'] == id);
+    if (index != -1) {
+      users[index].addAll(updates);
+      await saveUsers(users);
+    }
+  }
+
+  static Future<void> deleteUser(String id) async {
+    final users = await getUsers();
+    
+    users.removeWhere((user) => user['id'] == id);
+    await saveUsers(users);
+  }
+
+
+
+  // 시스템 설정 관련 메서드들
+  static Future<void> saveSystemSettings(Map<String, dynamic> settings) async {
+    if (_prefs == null) await initialize();
+    
+    final String settingsJson = jsonEncode(settings);
+    await _prefs!.setString('system_settings', settingsJson);
+  }
+
+  static Future<Map<String, dynamic>> getSystemSettings() async {
+    if (_prefs == null) await initialize();
+    
+    final String? settingsJson = _prefs!.getString('system_settings');
+    if (settingsJson != null) {
+      return Map<String, dynamic>.from(jsonDecode(settingsJson));
+    }
+    return {
+      'auto_backup': true,
+      'notifications_enabled': true,
+    };
+  }
+
+  // 보안 설정 관련 메서드들
+  static Future<void> saveSecuritySettings(Map<String, dynamic> settings) async {
+    if (_prefs == null) await initialize();
+    
+    final String settingsJson = jsonEncode(settings);
+    await _prefs!.setString('security_settings', settingsJson);
+  }
+
+  static Future<Map<String, dynamic>> getSecuritySettings() async {
+    if (_prefs == null) await initialize();
+    
+    final String? settingsJson = _prefs!.getString('security_settings');
+    if (settingsJson != null) {
+      return Map<String, dynamic>.from(jsonDecode(settingsJson));
+    }
+    return {
+      'ip_restriction': false,
+      'time_restriction': false,
+      'device_restriction': false,
+    };
+  }
+
+  // IP 규칙 관련 메서드들
+  static Future<void> saveIpRules(List<Map<String, dynamic>> rules) async {
+    if (_prefs == null) await initialize();
+    
+    final String rulesJson = jsonEncode(rules);
+    await _prefs!.setString('ip_rules', rulesJson);
+  }
+
+  static Future<List<Map<String, dynamic>>> getIpRules() async {
+    if (_prefs == null) await initialize();
+    
+    final String? rulesJson = _prefs!.getString('ip_rules');
+    if (rulesJson != null) {
+      List<dynamic> rulesList = jsonDecode(rulesJson);
+      return rulesList.cast<Map<String, dynamic>>();
+    }
+    return [];
+  }
+
+  static Future<void> addIpRule(Map<String, dynamic> rule) async {
+    final rules = await getIpRules();
+    rule['id'] = DateTime.now().millisecondsSinceEpoch.toString();
+    rule['created_at'] = DateTime.now().toIso8601String();
+    rules.add(rule);
+    await saveIpRules(rules);
+  }
+
+  static Future<void> deleteIpRule(String id) async {
+    final rules = await getIpRules();
+    rules.removeWhere((rule) => rule['id'] == id);
+    await saveIpRules(rules);
+  }
+
+  // IP 접근 검증
+  static Future<bool> isIpAllowed(String ip) async {
+    final rules = await getIpRules();
+    final settings = await getSecuritySettings();
+    
+    // IP 제한이 비활성화되어 있으면 모든 IP 허용
+    if (!settings['ip_restriction']) return true;
+    
+    // 규칙이 없으면 모든 IP 허용
+    if (rules.isEmpty) return true;
+    
+    // 규칙 검사
+    for (final rule in rules) {
+      final ruleType = rule['type']; // 'allow' or 'block'
+      final ruleIp = rule['ip'];
+      final isActive = rule['is_active'] ?? true;
+      
+      if (!isActive) continue;
+      
+      // 정확한 IP 매치
+      if (ruleIp == ip) {
+        return ruleType == 'allow';
+      }
+      
+      // CIDR 표기법 지원 (예: 192.168.1.0/24)
+      if (ruleIp.contains('/')) {
+        if (_isIpInCidr(ip, ruleIp)) {
+          return ruleType == 'allow';
+        }
+      }
+    }
+    
+    // 기본값: 허용되지 않은 IP는 차단
+    return false;
+  }
+
+  // CIDR 표기법 검사 (간단한 구현)
+  static bool _isIpInCidr(String ip, String cidr) {
+    try {
+      final parts = cidr.split('/');
+      final networkIp = parts[0];
+      final prefixLength = int.parse(parts[1]);
+      
+      // 간단한 구현 (실제로는 더 복잡한 네트워크 계산 필요)
+      return ip.startsWith(networkIp.split('.').take(3).join('.'));
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // 시간 제한 규칙 관련 메서드들
+  static Future<void> saveTimeRules(List<Map<String, dynamic>> rules) async {
+    if (_prefs == null) await initialize();
+    
+    final String rulesJson = jsonEncode(rules);
+    await _prefs!.setString('time_rules', rulesJson);
+  }
+
+  static Future<List<Map<String, dynamic>>> getTimeRules() async {
+    if (_prefs == null) await initialize();
+    
+    final String? rulesJson = _prefs!.getString('time_rules');
+    if (rulesJson != null) {
+      List<dynamic> rulesList = jsonDecode(rulesJson);
+      return rulesList.cast<Map<String, dynamic>>();
+    }
+    return [];
+  }
+
+  static Future<void> addTimeRule(Map<String, dynamic> rule) async {
+    final rules = await getTimeRules();
+    rule['id'] = DateTime.now().millisecondsSinceEpoch.toString();
+    rule['created_at'] = DateTime.now().toIso8601String();
+    rules.add(rule);
+    await saveTimeRules(rules);
+  }
+
+  static Future<void> deleteTimeRule(String id) async {
+    final rules = await getTimeRules();
+    rules.removeWhere((rule) => rule['id'] == id);
+    await saveTimeRules(rules);
+  }
+
+  // 시간 접근 검증
+  static Future<bool> isTimeAllowed() async {
+    final rules = await getTimeRules();
+    final settings = await getSecuritySettings();
+    
+    // 시간 제한이 비활성화되어 있으면 모든 시간 허용
+    if (!settings['time_restriction']) return true;
+    
+    // 규칙이 없으면 모든 시간 허용
+    if (rules.isEmpty) return true;
+    
+    final now = DateTime.now();
+    final currentTime = {
+      'hour': now.hour,
+      'minute': now.minute,
+    };
+    final currentWeekday = now.weekday; // 1=월요일, 7=일요일
+    
+    // 규칙 검사
+    for (final rule in rules) {
+      final isActive = rule['is_active'] ?? true;
+      if (!isActive) continue;
+      
+      final startTime = {
+        'hour': rule['start_hour'] ?? 0,
+        'minute': rule['start_minute'] ?? 0,
+      };
+      final endTime = {
+        'hour': rule['end_hour'] ?? 23,
+        'minute': rule['end_minute'] ?? 59,
+      };
+      
+      final weekdays = List<int>.from(rule['weekdays'] ?? [1, 2, 3, 4, 5, 6, 7]);
+      final ruleType = rule['type']; // 'allow' or 'block'
+      
+      // 요일 체크
+      if (!weekdays.contains(currentWeekday)) continue;
+      
+      // 시간 체크
+      if (_isTimeInRange(currentTime, startTime, endTime)) {
+        return ruleType == 'allow';
+      }
+    }
+    
+    // 기본값: 허용되지 않은 시간은 차단
+    return false;
+  }
+
+  static bool _isTimeInRange(Map<String, dynamic> current, Map<String, dynamic> start, Map<String, dynamic> end) {
+    final currentMinutes = (current['hour'] ?? 0) * 60 + (current['minute'] ?? 0);
+    final startMinutes = (start['hour'] ?? 0) * 60 + (start['minute'] ?? 0);
+    final endMinutes = (end['hour'] ?? 0) * 60 + (end['minute'] ?? 0);
+    
+    if (startMinutes <= endMinutes) {
+      // 같은 날 내 시간 범위 (예: 09:00-18:00)
+      return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+    } else {
+      // 자정을 넘나드는 시간 범위 (예: 22:00-06:00)
+      return currentMinutes >= startMinutes || currentMinutes <= endMinutes;
+    }
+  }
+
+  // 디바이스 제한 규칙 관련 메서드들
+  static Future<void> saveDeviceRules(List<Map<String, dynamic>> rules) async {
+    if (_prefs == null) await initialize();
+    
+    final String rulesJson = jsonEncode(rules);
+    await _prefs!.setString('device_rules', rulesJson);
+  }
+
+  static Future<List<Map<String, dynamic>>> getDeviceRules() async {
+    if (_prefs == null) await initialize();
+    
+    final String? rulesJson = _prefs!.getString('device_rules');
+    if (rulesJson != null) {
+      List<dynamic> rulesList = jsonDecode(rulesJson);
+      return rulesList.cast<Map<String, dynamic>>();
+    }
+    return [];
+  }
+
+  static Future<void> addDeviceRule(Map<String, dynamic> rule) async {
+    final rules = await getDeviceRules();
+    rule['id'] = DateTime.now().millisecondsSinceEpoch.toString();
+    rule['created_at'] = DateTime.now().toIso8601String();
+    rules.add(rule);
+    await saveDeviceRules(rules);
+  }
+
+  static Future<void> deleteDeviceRule(String id) async {
+    final rules = await getDeviceRules();
+    rules.removeWhere((rule) => rule['id'] == id);
+    await saveDeviceRules(rules);
+  }
+
+  // 디바이스 접근 검증
+  static Future<bool> isDeviceAllowed(String deviceId, String deviceType) async {
+    final rules = await getDeviceRules();
+    final settings = await getSecuritySettings();
+    
+    // 디바이스 제한이 비활성화되어 있으면 모든 디바이스 허용
+    if (!settings['device_restriction']) return true;
+    
+    // 규칙이 없으면 모든 디바이스 허용
+    if (rules.isEmpty) return true;
+    
+    // 규칙 검사
+    for (final rule in rules) {
+      final isActive = rule['is_active'] ?? true;
+      if (!isActive) continue;
+      
+      final ruleType = rule['type']; // 'allow' or 'block'
+      final ruleDeviceId = rule['device_id'];
+      final ruleDeviceType = rule['device_type'];
+      
+      // 디바이스 ID 매치
+      if (ruleDeviceId == deviceId) {
+        return ruleType == 'allow';
+      }
+      
+      // 디바이스 타입 매치 (예: 'mobile', 'desktop', 'tablet')
+      if (ruleDeviceType == deviceType) {
+        return ruleType == 'allow';
+      }
+    }
+    
+    // 기본값: 허용되지 않은 디바이스는 차단
+    return false;
+  }
+
+  // 사용자 설정 관련 메서드들
+  static Future<void> saveNotificationSettings(Map<String, dynamic> settings) async {
+    if (_prefs == null) await initialize();
+    
+    final String settingsJson = jsonEncode(settings);
+    await _prefs!.setString('notification_settings', settingsJson);
+  }
+
+  static Future<Map<String, dynamic>> getNotificationSettings() async {
+    if (_prefs == null) await initialize();
+    
+    final String? settingsJson = _prefs!.getString('notification_settings');
+    if (settingsJson != null) {
+      return Map<String, dynamic>.from(jsonDecode(settingsJson));
+    }
+    return {
+      'push_enabled': true,
+      'email_enabled': true,
+      'project_notifications': true,
+      'event_notifications': true,
+    };
+  }
+
+  static Future<void> saveAppSettings(Map<String, dynamic> settings) async {
+    if (_prefs == null) await initialize();
+    
+    final String settingsJson = jsonEncode(settings);
+    await _prefs!.setString('app_settings', settingsJson);
+  }
+
+  static Future<Map<String, dynamic>> getAppSettings() async {
+    if (_prefs == null) await initialize();
+    
+    final String? settingsJson = _prefs!.getString('app_settings');
+    if (settingsJson != null) {
+      return Map<String, dynamic>.from(jsonDecode(settingsJson));
+    }
+    return {
+      'language': 'ko',
+      'dark_mode': false,
+      'auto_sync': true,
+      'biometric_enabled': false,
+      'auto_logout_minutes': 30,
+    };
   }
 
 }

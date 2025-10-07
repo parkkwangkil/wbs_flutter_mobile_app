@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../services/api_service.dart';
+import '../services/local_database.dart';
+import '../services/biometric_service.dart';
 import '../providers/language_provider.dart';
 import 'main_navigation_page.dart';
 
@@ -22,6 +24,55 @@ class _LoginPageState extends State<LoginPage> {
     _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  // 생체 인증 로그인
+  Future<void> _biometricLogin() async {
+    try {
+      // 생체 인증 설정 확인
+      final appSettings = await LocalDatabase.getAppSettings();
+      if (appSettings['biometric_enabled'] != true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(Provider.of<LanguageProvider>(context, listen: false)
+                .getText('생체 인증이 활성화되지 않았습니다', 'Biometric authentication is not enabled')),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+
+      // 생체 인증 실행
+      final bool authenticated = await BiometricService.authenticate(
+        localizedReason: Provider.of<LanguageProvider>(context, listen: false)
+            .getText('생체 인증으로 로그인하세요', 'Authenticate to login'),
+      );
+
+      if (authenticated) {
+        // 기본 사용자로 로그인 (실제 앱에서는 저장된 사용자 정보 사용)
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => const MainNavigationPage(currentUser: 'test'),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(Provider.of<LanguageProvider>(context, listen: false)
+                .getText('생체 인증에 실패했습니다', 'Biometric authentication failed')),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(Provider.of<LanguageProvider>(context, listen: false)
+              .getText('생체 인증 중 오류가 발생했습니다', 'Error during biometric authentication')),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Future<void> _performLogin() async {
@@ -132,7 +183,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    languageProvider.getText('테스트 계정: devops / devops123', 'Test Account: devops / devops123'),
+                    languageProvider.getText('테스트 계정: test / 1111', 'Test Account: test / 1111'),
                     textAlign: TextAlign.right,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
@@ -157,6 +208,36 @@ class _LoginPageState extends State<LoginPage> {
                     ],
                   ),
                   const SizedBox(height: 24),
+                  // 생체 인증 로그인 버튼
+                  FutureBuilder<bool>(
+                    future: BiometricService.isBiometricAvailable(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const SizedBox.shrink();
+                      }
+                      
+                      if (snapshot.data == true) {
+                        return Column(
+                          children: [
+                            ElevatedButton.icon(
+                              onPressed: () async {
+                                await _biometricLogin();
+                              },
+                              icon: const Icon(Icons.fingerprint),
+                              label: Text(languageProvider.getText('생체 인증으로 로그인', 'Login with Biometric')),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue[600],
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
                   // 소셜 로그인 버튼
                   ElevatedButton.icon(
                     onPressed: () {

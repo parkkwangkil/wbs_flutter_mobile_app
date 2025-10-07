@@ -37,6 +37,8 @@ dependencies:
   timezone: ^0.9.4
   
   provider: ^6.1.2
+  
+  local_auth: ^2.1.6
 
   # AdMob (Google Mobile Ads) - 나중에 사용하기 위해 주석 처리
   # google_mobile_ads: ^5.1.0

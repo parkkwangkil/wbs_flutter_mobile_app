@@ -60,7 +60,6 @@ class _CreateEventPageState extends State<CreateEventPage> {
   Future<void> _loadProjects() async {
     try {
       // 샘플 프로젝트 생성 (데이터가 없을 경우)
-      await LocalDatabase.createSampleProjects();
       final projects = await LocalDatabase.getProjects();
       setState(() {
         _projects = projects;

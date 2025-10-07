@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/language_provider.dart';
+import 'simple_settings_page.dart';
 
 class ProfilePage extends StatelessWidget {
   final String username;
@@ -23,6 +24,18 @@ class ProfilePage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(lang.getText('프로필', 'Profile')),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SimpleSettingsPage()),
+              );
+            },
+            tooltip: lang.getText('설정', 'Settings'),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -78,10 +91,13 @@ class ProfilePage extends StatelessWidget {
             ),
             _buildProfileMenu(
               lang,
-              icon: Icons.notifications_outlined,
-              text: lang.getText('알림 설정', 'Notification Settings'),
+              icon: Icons.settings_outlined,
+              text: lang.getText('설정', 'Settings'),
               onTap: () {
-                Navigator.pushNamed(context, '/notification_settings');
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SimpleSettingsPage()),
+                );
               },
             ),
             const Divider(),

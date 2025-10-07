@@ -40,7 +40,6 @@ class _ProjectListPageState extends State<ProjectListPage> {
   
   Future<void> _initializeAndLoadProjects() async {
     // 샘플 프로젝트 생성 (데이터가 없을 경우)
-    await LocalDatabase.createSampleProjects();
     _loadProjects();
   }
 
@@ -430,6 +429,7 @@ class _ProjectListPageState extends State<ProjectListPage> {
             title: Text(lang.getText('팀 관리', 'Team Management')),
             onTap: () {
               Navigator.pop(context);
+              Navigator.pushNamed(context, '/team_management');
             },
           ),
           ListTile(
@@ -437,8 +437,19 @@ class _ProjectListPageState extends State<ProjectListPage> {
             title: Text(lang.getText('설정', 'Settings')),
             onTap: () {
               Navigator.pop(context);
+              Navigator.pushNamed(context, '/settings', arguments: widget.currentUser);
             },
           ),
+          if (widget.currentUser != 'admin') ...[
+            ListTile(
+              leading: const Icon(Icons.star),
+              title: Text(lang.getText('구독 관리', 'Subscription')),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/subscription');
+              },
+            ),
+          ],
           if (widget.currentUser == 'admin') ...[
             const Divider(),
             ListTile(

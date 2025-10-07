@@ -19,6 +19,7 @@ class _CalendarPageState extends State<CalendarPage> {
   CalendarFormat _calendarFormat = CalendarFormat.month;
   List<Map<String, dynamic>> _events = [];
   bool _isLoading = true;
+  AppStateService? _appState;
   
   @override
   void initState() {
@@ -30,14 +31,15 @@ class _CalendarPageState extends State<CalendarPage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     // AppStateService 변경사항 감지하여 자동 새로고침
-    final appState = Provider.of<AppStateService>(context, listen: false);
-    appState.addListener(_onAppStateChanged);
+    _appState = Provider.of<AppStateService>(context, listen: false);
+    _appState!.addListener(_onAppStateChanged);
   }
 
   @override
   void dispose() {
-    final appState = Provider.of<AppStateService>(context, listen: false);
-    appState.removeListener(_onAppStateChanged);
+    if (_appState != null) {
+      _appState!.removeListener(_onAppStateChanged);
+    }
     super.dispose();
   }
 

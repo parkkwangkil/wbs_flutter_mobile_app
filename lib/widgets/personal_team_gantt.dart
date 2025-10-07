@@ -65,40 +65,8 @@ class _PersonalTeamGanttState extends State<PersonalTeamGantt> {
         // 데이터베이스에서 작업을 찾지 못했으면 빈 목록 유지
         // (샘플 데이터 대신 실제 데이터만 표시)
       } else {
-        // 프로젝트가 없으면 샘플 데이터 생성
-        final now = DateTime.now();
-        _tasks = [
-          {
-            'id': '1',
-            'title': '기획',
-            'start_date': now.toIso8601String().split('T')[0],
-            'end_date': now.add(const Duration(days: 20)).toIso8601String().split('T')[0],
-            'color': 'blue',
-            'progress': 0.3,
-            'assignee': widget.isPersonal ? '나' : '기획팀',
-            'project_id': widget.projectId,
-          },
-          {
-            'id': '2',
-            'title': '개발',
-            'start_date': now.add(const Duration(days: 21)).toIso8601String().split('T')[0],
-            'end_date': now.add(const Duration(days: 40)).toIso8601String().split('T')[0],
-            'color': 'green',
-            'progress': 0.0,
-            'assignee': widget.isPersonal ? '나' : '개발팀',
-            'project_id': widget.projectId,
-          },
-          {
-            'id': '3',
-            'title': '테스트',
-            'start_date': now.add(const Duration(days: 41)).toIso8601String().split('T')[0],
-            'end_date': now.add(const Duration(days: 50)).toIso8601String().split('T')[0],
-            'color': 'orange',
-            'progress': 0.0,
-            'assignee': widget.isPersonal ? '나' : 'QA팀',
-            'project_id': widget.projectId,
-          },
-        ];
+        // 프로젝트가 없으면 빈 목록 유지
+        _tasks = [];
       }
 
       // 날짜 범위 계산
@@ -119,41 +87,6 @@ class _PersonalTeamGanttState extends State<PersonalTeamGantt> {
     });
   }
 
-  List<Map<String, dynamic>> _createSampleTasks() {
-    final now = DateTime.now();
-    return [
-      {
-        'id': '1',
-        'title': '기획',
-        'start_date': now.toIso8601String().split('T')[0],
-        'end_date': now.add(const Duration(days: 20)).toIso8601String().split('T')[0],
-        'color': 'blue',
-        'progress': 0.3,
-        'assignee': widget.isPersonal ? '나' : '기획팀',
-        'project_id': widget.projectId,
-      },
-      {
-        'id': '2',
-        'title': '개발',
-        'start_date': now.add(const Duration(days: 21)).toIso8601String().split('T')[0],
-        'end_date': now.add(const Duration(days: 40)).toIso8601String().split('T')[0],
-        'color': 'green',
-        'progress': 0.0,
-        'assignee': widget.isPersonal ? '나' : '개발팀',
-        'project_id': widget.projectId,
-      },
-      {
-        'id': '3',
-        'title': '테스트',
-        'start_date': now.add(const Duration(days: 41)).toIso8601String().split('T')[0],
-        'end_date': now.add(const Duration(days: 50)).toIso8601String().split('T')[0],
-        'color': 'orange',
-        'progress': 0.0,
-        'assignee': widget.isPersonal ? '나' : 'QA팀',
-        'project_id': widget.projectId,
-      },
-    ];
-  }
 
   @override
   Widget build(BuildContext context) {

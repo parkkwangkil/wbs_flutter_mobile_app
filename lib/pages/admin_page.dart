@@ -1,11 +1,60 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/language_provider.dart';
+import '../services/local_database.dart';
+import '../services/app_state_service.dart';
 import 'admin_security_page.dart';
-import 'data_analysis_page.dart'; // 방금 보여주신 그 파일입니다.
+import 'data_analysis_page.dart';
+import 'team_page.dart';
 
-class AdminPage extends StatelessWidget {
+class AdminPage extends StatefulWidget {
   const AdminPage({super.key});
+
+  @override
+  State<AdminPage> createState() => _AdminPageState();
+}
+
+class _AdminPageState extends State<AdminPage> {
+  List<Map<String, dynamic>> users = [];
+  bool _isLoading = true;
+  Map<String, dynamic> _systemSettings = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUsers();
+    _loadSystemSettings();
+  }
+
+  Future<void> _loadUsers() async {
+    setState(() {
+      _isLoading = true;
+    });
+    try {
+      final userList = await LocalDatabase.getUsers();
+      setState(() {
+        users = userList;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading users: $e');
+      setState(() {
+        users = [];
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loadSystemSettings() async {
+    try {
+      final settings = await LocalDatabase.getSystemSettings();
+      setState(() {
+        _systemSettings = settings;
+      });
+    } catch (e) {
+      print('Error loading system settings: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,6 +98,18 @@ class AdminPage extends StatelessWidget {
             },
           ),
            _buildAdminMenuItem(
+            context: context,
+            icon: Icons.group_outlined,
+            title: lang.getText('팀 관리', 'Team Management'),
+            subtitle: lang.getText('팀원 추가, 수정, 삭제 관리', 'Manage team members - add, edit, delete'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const TeamPage(projectId: 'admin')),
+              );
+            },
+          ),
+          _buildAdminMenuItem(
             context: context,
             icon: Icons.analytics_outlined,
             title: lang.getText('데이터 분석', 'Data Analytics'),
@@ -134,14 +195,22 @@ class AdminPage extends StatelessWidget {
               SwitchListTile(
                 title: Text(lang.getText('자동 백업', 'Auto Backup')),
                 subtitle: Text(lang.getText('매일 자동으로 데이터를 백업합니다', 'Automatically backup data daily')),
-                value: true,
-                onChanged: (value) {},
+                value: _systemSettings['auto_backup'] ?? true,
+                onChanged: (value) {
+                  setState(() {
+                    _systemSettings['auto_backup'] = value;
+                  });
+                },
               ),
               SwitchListTile(
                 title: Text(lang.getText('알림 활성화', 'Enable Notifications')),
                 subtitle: Text(lang.getText('시스템 알림을 활성화합니다', 'Enable system notifications')),
-                value: true,
-                onChanged: (value) {},
+                value: _systemSettings['notifications_enabled'] ?? true,
+                onChanged: (value) {
+                  setState(() {
+                    _systemSettings['notifications_enabled'] = value;
+                  });
+                },
               ),
             ],
           ),
@@ -151,7 +220,8 @@ class AdminPage extends StatelessWidget {
               child: Text(lang.getText('닫기', 'Close')),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
+                await LocalDatabase.saveSystemSettings(_systemSettings);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text(lang.getText('설정이 저장되었습니다.', 'Settings saved.'))),
                 );
@@ -206,16 +276,45 @@ class AdminPage extends StatelessWidget {
               child: Text(lang.getText('취소', 'Cancel')),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 if (nameController.text.isNotEmpty && 
                     emailController.text.isNotEmpty && 
                     passwordController.text.isNotEmpty) {
+                  try {
+                    final newUser = {
+                      'name': nameController.text,
+                      'email': emailController.text,
+                      'password': passwordController.text,
+                      'role': 'user',
+                      'status': 'offline',
+                      'created_at': DateTime.now().toIso8601String(),
+                    };
+                    
+                    await LocalDatabase.addUser(newUser);
+                    await _loadUsers();
+                    Provider.of<AppStateService>(context, listen: false).notifyListeners();
+                    
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(lang.getText('사용자가 추가되었습니다.', 'User added.')),
+                      ),
+                    );
+                    Navigator.pop(context);
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(lang.getText('사용자 추가에 실패했습니다.', 'Failed to add user.')),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(lang.getText('사용자가 추가되었습니다.', 'User added.')),
+                      content: Text(lang.getText('모든 필드를 입력해주세요.', 'Please fill in all fields.')),
+                      backgroundColor: Colors.red,
                     ),
                   );
-                  Navigator.pop(context);
                 }
               },
               child: Text(lang.getText('추가', 'Add')),
@@ -234,29 +333,61 @@ class AdminPage extends StatelessWidget {
           title: Text(lang.getText('사용자 목록', 'User List')),
           content: SizedBox(
             width: double.maxFinite,
-            height: 300,
-            child: ListView(
-              children: [
-                ListTile(
-                  leading: const CircleAvatar(child: Text('A')),
-                  title: const Text('Admin'),
-                  subtitle: const Text('admin@wbs.com'),
-                  trailing: const Icon(Icons.admin_panel_settings),
-                ),
-                ListTile(
-                  leading: const CircleAvatar(child: Text('D')),
-                  title: const Text('DevOps'),
-                  subtitle: const Text('devops@wbs.com'),
-                  trailing: const Icon(Icons.person),
-                ),
-                ListTile(
-                  leading: const CircleAvatar(child: Text('U')),
-                  title: const Text('User1'),
-                  subtitle: const Text('user1@wbs.com'),
-                  trailing: const Icon(Icons.person),
-                ),
-              ],
-            ),
+            height: 400,
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : users.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.people_outline, size: 48, color: Colors.grey[400]),
+                            const SizedBox(height: 16),
+                            Text(
+                              lang.getText('사용자가 없습니다', 'No users'),
+                              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: users.length,
+                        itemBuilder: (context, index) {
+                          final user = users[index];
+                          return ListTile(
+                            leading: CircleAvatar(
+                              child: Text(user['name']?.substring(0, 1).toUpperCase() ?? 'U'),
+                            ),
+                            title: Text(user['name'] ?? 'Unknown'),
+                            subtitle: Text(user['email'] ?? 'No email'),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  user['role'] == 'admin' 
+                                      ? Icons.admin_panel_settings 
+                                      : Icons.person,
+                                  color: user['role'] == 'admin' ? Colors.red : Colors.blue,
+                                ),
+                                const SizedBox(width: 8),
+                                PopupMenuButton<String>(
+                                  onSelected: (value) {
+                                    if (value == 'delete') {
+                                      _deleteUser(context, lang, user);
+                                    }
+                                  },
+                                  itemBuilder: (context) => [
+                                    PopupMenuItem(
+                                      value: 'delete',
+                                      child: Text(lang.getText('삭제', 'Delete')),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
           ),
           actions: [
             TextButton(
@@ -268,4 +399,48 @@ class AdminPage extends StatelessWidget {
       },
     );
   }
+
+  Future<void> _deleteUser(BuildContext context, LanguageProvider lang, Map<String, dynamic> user) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(lang.getText('사용자 삭제', 'Delete User')),
+        content: Text('${user['name']}님을 삭제하시겠습니까?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(lang.getText('취소', 'Cancel')),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: Text(lang.getText('삭제', 'Delete')),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await LocalDatabase.deleteUser(user['id']);
+        await _loadUsers();
+        Provider.of<AppStateService>(context, listen: false).notifyListeners();
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(lang.getText('사용자가 삭제되었습니다.', 'User deleted.')),
+          ),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(lang.getText('사용자 삭제에 실패했습니다.', 'Failed to delete user.')),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+
 }

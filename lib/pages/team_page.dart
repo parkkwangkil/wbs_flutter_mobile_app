@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/language_provider.dart';
+import '../services/local_database.dart';
+import '../services/app_state_service.dart';
 
 class TeamPage extends StatefulWidget {
   final String projectId;
@@ -11,14 +13,53 @@ class TeamPage extends StatefulWidget {
 }
 
 class _TeamPageState extends State<TeamPage> {
-  // 가짜 팀 멤버 데이터
-  List<Map<String, dynamic>> teamMembers = [
-    {'id': '1', 'name': 'Admin', 'role': 'Project Manager', 'status': 'online', 'email': 'admin@company.com'},
-    {'id': '2', 'name': 'DevOps', 'role': 'Lead Developer', 'status': 'online', 'email': 'devops@company.com'},
-    {'id': '3', 'name': 'Designer', 'role': 'UI/UX Designer', 'status': 'away', 'email': 'designer@company.com'},
-    {'id': '4', 'name': 'User1', 'role': 'Frontend Developer', 'status': 'offline', 'email': 'user1@company.com'},
-    {'id': '5', 'name': 'User2', 'role': 'Backend Developer', 'status': 'offline', 'email': 'user2@company.com'},
-  ];
+  List<Map<String, dynamic>> teamMembers = [];
+  bool _isLoading = true;
+  AppStateService? _appState;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTeamMembers();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _appState = Provider.of<AppStateService>(context, listen: false);
+    _appState!.addListener(_onAppStateChanged);
+  }
+
+  @override
+  void dispose() {
+    if (_appState != null) {
+      _appState!.removeListener(_onAppStateChanged);
+    }
+    super.dispose();
+  }
+
+  void _onAppStateChanged() {
+    _loadTeamMembers();
+  }
+
+  Future<void> _loadTeamMembers() async {
+    setState(() {
+      _isLoading = true;
+    });
+    try {
+      final members = await LocalDatabase.getTeamMembers();
+      setState(() {
+        teamMembers = members;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading team members: $e');
+      setState(() {
+        teamMembers = [];
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,9 +69,30 @@ class _TeamPageState extends State<TeamPage> {
       appBar: AppBar(
         title: Text(lang.getText('팀 멤버', 'Team Members')),
       ),
-      body: ListView.builder(
-        itemCount: teamMembers.length,
-        itemBuilder: (context, index) {
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : teamMembers.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.people_outline, size: 64, color: Colors.grey[400]),
+                      const SizedBox(height: 16),
+                      Text(
+                        lang.getText('팀 멤버가 없습니다', 'No team members'),
+                        style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        lang.getText('새 멤버를 추가해보세요', 'Add new members'),
+                        style: TextStyle(color: Colors.grey[500]),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  itemCount: teamMembers.length,
+                  itemBuilder: (context, index) {
           final member = teamMembers[index];
           return ListTile(
             leading: CircleAvatar(
@@ -146,23 +208,35 @@ class _TeamPageState extends State<TeamPage> {
               child: Text(lang.getText('취소', 'Cancel')),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 if (emailController.text.isNotEmpty) {
-                  // 새 멤버 추가
-                  setState(() {
-                    teamMembers.add({
+                  try {
+                    final newMember = {
                       'name': emailController.text.split('@')[0],
+                      'email': emailController.text,
                       'role': 'New Member',
                       'status': 'offline',
-                    });
-                  });
-                  
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(lang.getText('초대가 전송되었습니다.', 'Invitation sent.')),
-                    ),
-                  );
-                  Navigator.of(context).pop();
+                      'created_at': DateTime.now().toIso8601String(),
+                    };
+                    
+                    await LocalDatabase.addTeamMember(newMember);
+                    await _loadTeamMembers();
+                    Provider.of<AppStateService>(context, listen: false).notifyListeners();
+                    
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(lang.getText('초대가 전송되었습니다.', 'Invitation sent.')),
+                      ),
+                    );
+                    Navigator.of(context).pop();
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(lang.getText('초대 전송에 실패했습니다.', 'Failed to send invitation.')),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
                 }
               },
               child: Text(lang.getText('초대', 'Invite')),
@@ -224,28 +298,39 @@ class _TeamPageState extends State<TeamPage> {
               child: Text(lang.getText('취소', 'Cancel')),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 if (nameController.text.isNotEmpty && 
                     roleController.text.isNotEmpty && 
                     emailController.text.isNotEmpty &&
                     passwordController.text.isNotEmpty) {
-                  // 새 멤버 추가
-                  setState(() {
-                    teamMembers.add({
+                  try {
+                    final newMember = {
                       'name': nameController.text,
                       'role': roleController.text,
                       'email': emailController.text,
                       'password': passwordController.text,
                       'status': 'offline',
-                    });
-                  });
-                  
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(lang.getText('멤버가 생성되었습니다.', 'Member created.')),
-                    ),
-                  );
-                  Navigator.of(context).pop();
+                      'created_at': DateTime.now().toIso8601String(),
+                    };
+                    
+                    await LocalDatabase.addTeamMember(newMember);
+                    await _loadTeamMembers();
+                    Provider.of<AppStateService>(context, listen: false).notifyListeners();
+                    
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(lang.getText('멤버가 생성되었습니다.', 'Member created.')),
+                      ),
+                    );
+                    Navigator.of(context).pop();
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(lang.getText('멤버 생성에 실패했습니다.', 'Failed to create member.')),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -344,16 +429,26 @@ class _TeamPageState extends State<TeamPage> {
               child: Text(lang.getText('취소', 'Cancel')),
             ),
             ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  teamMembers.remove(member);
-                });
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(lang.getText('멤버가 제거되었습니다.', 'Member removed.')),
-                  ),
-                );
+              onPressed: () async {
+                try {
+                  await LocalDatabase.deleteTeamMember(member['id']);
+                  await _loadTeamMembers();
+                  Provider.of<AppStateService>(context, listen: false).notifyListeners();
+                  
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(lang.getText('멤버가 제거되었습니다.', 'Member removed.')),
+                    ),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(lang.getText('멤버 제거에 실패했습니다.', 'Failed to remove member.')),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               child: Text(lang.getText('제거', 'Remove')),
