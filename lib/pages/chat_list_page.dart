@@ -45,14 +45,14 @@ class _ChatListPageState extends State<ChatListPage> {
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('새 채팅방 만들기'),
+        title: const Text('새 메모 폴더 만들기'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: nameController,
               decoration: const InputDecoration(
-                labelText: '채팅방 이름',
+                labelText: '메모 폴더 이름',
                 border: OutlineInputBorder(),
               ),
             ),
@@ -100,7 +100,7 @@ class _ChatListPageState extends State<ChatListPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('채팅'),
+        title: const Text('개인 메모'),
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Colors.white,
         actions: [
@@ -124,7 +124,7 @@ class _ChatListPageState extends State<ChatListPage> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        '채팅방이 없습니다',
+                        '메모 폴더가 없습니다',
                         style: TextStyle(
                           fontSize: 18,
                           color: Colors.grey[600],
@@ -132,7 +132,7 @@ class _ChatListPageState extends State<ChatListPage> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '새 채팅방을 만들어보세요!',
+                        '새 메모 폴더를 만들어보세요!',
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.grey[500],
@@ -211,7 +211,7 @@ class _ChatListPageState extends State<ChatListPage> {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
-                                '${room['members']?.length ?? 0}명',
+                                '메모',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 10,

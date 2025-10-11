@@ -39,7 +39,11 @@ dependencies:
   provider: ^6.1.2
   
   local_auth: ^2.1.6
-
+  
+  # Claude AI 연동을 위한 패키지들
+  dio: ^5.4.0
+  crypto: ^3.0.3
+  
   # AdMob (Google Mobile Ads) - 나중에 사용하기 위해 주석 처리
   # google_mobile_ads: ^5.1.0
 

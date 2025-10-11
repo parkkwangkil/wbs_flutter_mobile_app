@@ -36,31 +36,22 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
   }
 
   Future<void> _loadMessages() async {
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
       final messages = await LocalDatabase.getChatMessages(widget.roomId);
-      if (mounted) {
-        setState(() {
-          _messages = messages;
-          _isLoading = false;
-        });
-        _scrollToBottom();
-      }
+      setState(() {
+        _messages = messages;
+        _isLoading = false;
+      });
+      _scrollToBottom();
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  void _scrollToBottom() {
-    if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
+      print('Error loading messages: $e');
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -69,42 +60,59 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
     if (messageText.isEmpty) return;
 
     final message = {
-      'id': DateTime.now().millisecondsSinceEpoch.toString(),
+      'id': 'msg_${DateTime.now().millisecondsSinceEpoch}',
       'room_id': widget.roomId,
       'user_id': _currentUserId,
-      'user_name': _currentUserId,
+      'user_name': _getUserName(_currentUserId),
       'message': messageText,
       'timestamp': DateTime.now().toIso8601String(),
-      'created_at': DateTime.now().toIso8601String(),
+      'type': 'text',
     };
 
-    setState(() {
-      _messages.add(message);
-    });
-
+    await LocalDatabase.addChatMessage(widget.roomId, message);
+    await _updateLastMessage(messageText);
+    
     _messageController.clear();
-    _scrollToBottom();
+    _loadMessages();
+  }
 
-    try {
-      await LocalDatabase.saveChatMessages(widget.roomId, _messages);
-    } catch (e) {
-      // 에러 처리
+  Future<void> _updateLastMessage(String message) async {
+    final rooms = await LocalDatabase.getChatRooms();
+    final roomIndex = rooms.indexWhere((r) => r['id'] == widget.roomId);
+    if (roomIndex != -1) {
+      rooms[roomIndex]['last_message'] = message;
+      rooms[roomIndex]['last_message_time'] = DateTime.now().toIso8601String();
+      await LocalDatabase.saveChatRooms(rooms);
     }
+  }
+
+  String _getUserName(String userId) {
+    switch (userId) {
+      case 'admin':
+        return 'Admin';
+      case 'test':
+        return 'Test User';
+      default:
+        return 'Unknown User';
+    }
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   Widget _buildMessageBubble(Map<String, dynamic> message) {
     final isMe = message['user_id'] == _currentUserId;
-    final userName = message['user_name']?.toString() ?? 'Unknown';
-    final messageText = message['message']?.toString() ?? '';
-    final timestamp = message['timestamp']?.toString() ?? '';
-
-    DateTime? messageTime;
-    try {
-      messageTime = DateTime.parse(timestamp);
-    } catch (e) {
-      messageTime = DateTime.now();
-    }
-
+    final timestamp = DateTime.parse(message['timestamp']);
+    
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
       child: Row(
@@ -113,10 +121,14 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
           if (!isMe) ...[
             CircleAvatar(
               radius: 16,
-              backgroundColor: Colors.blue,
+              backgroundColor: Theme.of(context).primaryColor,
               child: Text(
-                userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
-                style: const TextStyle(color: Colors.white, fontSize: 12),
+                message['user_name'][0].toUpperCase(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             const SizedBox(width: 8),
@@ -125,7 +137,9 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
-                color: isMe ? Colors.blue : Colors.grey[200],
+                color: isMe 
+                    ? Theme.of(context).primaryColor
+                    : Colors.grey[200],
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Column(
@@ -133,26 +147,26 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
                 children: [
                   if (!isMe)
                     Text(
-                      userName,
+                      message['user_name'],
                       style: TextStyle(
+                        color: Colors.grey[600],
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: Colors.grey[600],
                       ),
                     ),
                   Text(
-                    messageText,
+                    message['message'],
                     style: TextStyle(
-                      color: isMe ? Colors.white : Colors.black,
-                      fontSize: 16,
+                      color: isMe ? Colors.white : Colors.black87,
+                      fontSize: 14,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${messageTime.hour.toString().padLeft(2, '0')}:${messageTime.minute.toString().padLeft(2, '0')}',
+                    _formatTime(timestamp),
                     style: TextStyle(
+                      color: isMe ? Colors.white70 : Colors.grey[500],
                       fontSize: 10,
-                      color: isMe ? Colors.white70 : Colors.grey[600],
                     ),
                   ),
                 ],
@@ -163,16 +177,31 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
             const SizedBox(width: 8),
             CircleAvatar(
               radius: 16,
-              backgroundColor: Colors.green,
+              backgroundColor: Colors.grey[300],
               child: Text(
-                userName.isNotEmpty ? userName[0].toUpperCase() : 'M',
-                style: const TextStyle(color: Colors.white, fontSize: 12),
+                message['user_name'][0].toUpperCase(),
+                style: const TextStyle(
+                  color: Colors.black87,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
         ],
       ),
     );
+  }
+
+  String _formatTime(DateTime timestamp) {
+    final now = DateTime.now();
+    final difference = now.difference(timestamp);
+
+    if (difference.inDays > 0) {
+      return '${timestamp.month}/${timestamp.day} ${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}';
+    } else {
+      return '${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}';
+    }
   }
 
   @override
@@ -187,7 +216,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             Text(
-              '${_messages.length}개 메모',
+              '${_messages.length}개의 메시지',
               style: const TextStyle(fontSize: 12),
             ),
           ],
@@ -205,9 +234,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
         children: [
           Expanded(
             child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(),
-                  )
+                ? const Center(child: CircularProgressIndicator())
                 : _messages.isEmpty
                     ? Center(
                         child: Column(
@@ -220,7 +247,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              '아직 메모가 없습니다',
+                              '아직 메시지가 없습니다',
                               style: TextStyle(
                                 fontSize: 18,
                                 color: Colors.grey[600],
@@ -228,7 +255,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              '첫 번째 메모를 작성해보세요!',
+                              '첫 번째 메시지를 보내보세요!',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey[500],
@@ -259,13 +286,13 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
                   child: TextField(
                     controller: _messageController,
                     decoration: const InputDecoration(
-                      hintText: '메모를 입력하세요...',
+                      hintText: '메시지를 입력하세요...',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.all(Radius.circular(20)),
                       ),
                       contentPadding: EdgeInsets.symmetric(
                         horizontal: 16,
-                        vertical: 12,
+                        vertical: 8,
                       ),
                     ),
                     maxLines: null,
